@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use App\Enums\LeaveStatus;
 use App\Models\LeaveRequest;
+use App\Models\Shop;
 use App\Models\User;
+use App\Support\ShopContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -45,15 +47,38 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'initials' => $user->initials(),
                     'role' => $user->role->value,
+                    'roleLabel' => $user->role->label(),
                     'department' => $user->department?->name,
+                    'shop' => $user->shop?->name,
                 ],
             ],
             'flash' => [
                 'status' => fn (): ?string => $request->session()->get('status'),
             ],
+            'shopContext' => fn (): ?array => $user?->isAdmin() ? $this->shopContext($request) : null,
             'pendingLeaveCount' => fn (): int => $user?->isAdmin()
-                ? LeaveRequest::query()->where('status', LeaveStatus::Pending)->count()
+                ? LeaveRequest::query()
+                    ->where('status', LeaveStatus::Pending)
+                    ->inShops(app(ShopContext::class)->scopeIds())
+                    ->count()
                 : 0,
+        ];
+    }
+
+    /**
+     * @return array{current: array{id: int, name: string}|null, shops: list<array{id: int, name: string}>}
+     */
+    private function shopContext(Request $request): array
+    {
+        $context = app(ShopContext::class);
+        $current = $context->current();
+
+        return [
+            'current' => $current === null ? null : ['id' => $current->id, 'name' => $current->name],
+            'shops' => $context->accessibleShops()
+                ->map(fn (Shop $shop): array => ['id' => $shop->id, 'name' => $shop->name])
+                ->values()
+                ->all(),
         ];
     }
 }

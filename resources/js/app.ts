@@ -1,6 +1,7 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { createApp, h, type DefineComponent } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import StaffLayout from '@/layouts/StaffLayout.vue';
 
@@ -27,7 +28,7 @@ createInertiaApp({
         return name.startsWith('Staff/') ? StaffLayout : AdminLayout;
     },
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        createApp({ render: () => [h(App, props), h(ConfirmDialog)] })
             .use(plugin)
             .use(ZiggyVue)
             .mount(el);

@@ -37,6 +37,7 @@ const props = defineProps<{
         awaited: number;
         team: number;
     };
+    breakdownTitle: string;
     departments: { name: string; team: number; awaited: number; arrived: number; onSite: number }[];
     chart: ChartDay[];
     monthSummary: AttendanceSummary;
@@ -391,7 +392,7 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                 </article>
 
                 <article class="rounded-3xl border border-line bg-paper p-5">
-                    <h2 class="font-semibold">Par département</h2>
+                    <h2 class="font-semibold">{{ breakdownTitle }}</h2>
                     <ul class="mt-4 grid gap-4">
                         <li v-for="department in departments" :key="department.name" class="text-sm">
                             <div class="flex items-center justify-between">

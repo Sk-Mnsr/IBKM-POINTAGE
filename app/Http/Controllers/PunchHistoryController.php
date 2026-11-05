@@ -8,6 +8,7 @@ use App\Http\Resources\PunchResource;
 use App\Models\Department;
 use App\Models\Punch;
 use App\Models\User;
+use App\Support\ShopContext;
 use App\Support\SpreadsheetExporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,9 +19,9 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PunchHistoryController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ShopContext $shops): Response
     {
-        $filters = $this->filters($request);
+        $filters = $this->filters($request, $shops);
 
         $countsByType = $this->query($filters)
             ->reorder()
@@ -53,15 +54,17 @@ class PunchHistoryController extends Controller
                 'action' => $filters['type']?->value,
             ],
             'periodLabel' => 'du '.$filters['from']->format('d/m/Y').' au '.$filters['to']->format('d/m/Y'),
-            'employees' => User::query()->staff()->orderBy('name')->get(['id', 'name']),
-            'departments' => DepartmentResource::collection(Department::query()->orderBy('name')->get())->resolve(),
+            'employees' => User::query()->staff()->whereIn('shop_id', $filters['shops'])->orderBy('name')->get(['id', 'name']),
+            'departments' => DepartmentResource::collection(
+                Department::query()->whereIn('shop_id', $filters['shops'])->orderBy('name')->get(),
+            )->resolve(),
             'types' => array_map(fn (PunchType $type): array => $type->toArray(), PunchType::cases()),
         ]);
     }
 
-    public function export(Request $request, SpreadsheetExporter $exporter): BinaryFileResponse
+    public function export(Request $request, SpreadsheetExporter $exporter, ShopContext $shops): BinaryFileResponse
     {
-        $filters = $this->filters($request);
+        $filters = $this->filters($request, $shops);
 
         $rows = $this->query($filters)
             ->with(['user.department', 'kiosk'])
@@ -85,9 +88,9 @@ class PunchHistoryController extends Controller
     }
 
     /**
-     * @return array{from: CarbonImmutable, to: CarbonImmutable, employee: ?int, department: ?int, type: ?PunchType}
+     * @return array{from: CarbonImmutable, to: CarbonImmutable, employee: ?int, department: ?int, type: ?PunchType, shops: list<int>}
      */
-    private function filters(Request $request): array
+    private function filters(Request $request, ShopContext $shops): array
     {
         $from = $this->date($request->string('du')->toString()) ?? CarbonImmutable::today()->subDays(6);
         $to = $this->date($request->string('au')->toString()) ?? CarbonImmutable::today();
@@ -102,16 +105,18 @@ class PunchHistoryController extends Controller
             'employee' => $request->integer('employe') ?: null,
             'department' => $request->integer('departement') ?: null,
             'type' => PunchType::tryFrom($request->string('action')->toString()),
+            'shops' => $shops->scopeIds(),
         ];
     }
 
     /**
-     * @param  array{from: CarbonImmutable, to: CarbonImmutable, employee: ?int, department: ?int, type: ?PunchType}  $filters
+     * @param  array{from: CarbonImmutable, to: CarbonImmutable, employee: ?int, department: ?int, type: ?PunchType, shops: list<int>}  $filters
      * @return Builder<Punch>
      */
     private function query(array $filters): Builder
     {
         return Punch::query()
+            ->whereHas('user', fn (Builder $users) => $users->whereIn('shop_id', $filters['shops']))
             ->whereBetween('punched_at', [$filters['from']->startOfDay(), $filters['to']->endOfDay()])
             ->when($filters['employee'], fn (Builder $query, int $employee) => $query->where('user_id', $employee))
             ->when($filters['department'], fn (Builder $query, int $department) => $query->whereHas(

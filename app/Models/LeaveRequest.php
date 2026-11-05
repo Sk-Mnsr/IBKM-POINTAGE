@@ -59,6 +59,17 @@ class LeaveRequest extends Model
             ->whereDate('ends_on', '>=', $start->toDateString());
     }
 
+    /**
+     * @param  Builder<LeaveRequest>  $query
+     * @param  list<int>  $shopIds
+     * @return Builder<LeaveRequest>
+     */
+    #[Scope]
+    protected function inShops(Builder $query, array $shopIds): Builder
+    {
+        return $query->whereHas('user', fn (Builder $users) => $users->whereIn('shop_id', $shopIds));
+    }
+
     public function covers(CarbonInterface $date): bool
     {
         $day = $date->toDateString();

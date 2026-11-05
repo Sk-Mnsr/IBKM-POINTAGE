@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import { formatDuration } from '@/lib/format';
 import { minutesBetween } from '@/lib/schedule';
-import type { Department, Employee, WorkScheduleInput } from '@/types';
+import type { Department, Employee, ShopOption, WorkScheduleInput } from '@/types';
 
 const props = defineProps<{
     employee: Employee | null;
+    shops: ShopOption[];
+    defaultShopId: number | null;
     departments: Department[];
     weekdays: Record<string, string>;
 }>();
@@ -26,6 +28,7 @@ const form = useForm({
     name: props.employee?.name ?? '',
     phone: props.employee?.phone ?? '',
     email: props.employee?.email ?? '',
+    shop_id: props.employee?.shopId ?? props.defaultShopId ?? ('' as number | ''),
     department_id: props.employee?.departmentId ?? ('' as number | ''),
     password: '',
     must_change_password: true,
@@ -42,6 +45,18 @@ const initials = computed(() =>
         .slice(0, 2)
         .map((part) => part[0]?.toUpperCase())
         .join('') || '?',
+);
+
+const shopDepartments = computed(() => props.departments.filter((department) => department.shopId === form.shop_id));
+const shopName = computed(() => props.shops.find((shop) => shop.id === form.shop_id)?.name ?? null);
+
+watch(
+    () => form.shop_id,
+    () => {
+        if (!shopDepartments.value.some((department) => department.id === form.department_id)) {
+            form.department_id = '';
+        }
+    },
 );
 
 const departmentName = computed(() => props.departments.find((department) => department.id === form.department_id)?.name ?? 'Sans département');
@@ -129,6 +144,7 @@ const inputClasses = 'h-11 w-full rounded-xl border border-line bg-white px-3.5 
                         <p class="text-sm text-cream/55">{{ employee ? 'Modifier la fiche' : 'Nouvel employé' }}</p>
                         <h1 class="text-2xl font-semibold tracking-tight">{{ form.name || 'Nom de l’employé' }}</h1>
                         <div class="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                            <span v-if="shops.length > 1 && shopName" class="rounded-full bg-brand/20 px-2.5 py-0.5 text-brand">{{ shopName }}</span>
                             <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-cream/80">{{ departmentName }}</span>
                             <span
                                 class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5"
@@ -186,6 +202,24 @@ const inputClasses = 'h-11 w-full rounded-xl border border-line bg-white px-3.5 
                         <span class="grid size-9 place-items-center rounded-xl bg-sky-100 text-sky-800"><Icon name="building" class="size-4" /></span>
                         <h2 class="font-semibold">Poste</h2>
                     </div>
+                    <fieldset v-if="shops.length > 1" class="mt-5">
+                        <legend class="text-sm font-medium">Boutique</legend>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <button
+                                v-for="shop in shops"
+                                :key="shop.id"
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition"
+                                :class="form.shop_id === shop.id ? 'border-brand bg-brand/15 font-medium text-ink' : 'border-line bg-white text-ink/70 hover:border-ink/30'"
+                                @click="form.shop_id = shop.id"
+                            >
+                                <Icon name="store" class="size-4" />
+                                {{ shop.name }}
+                            </button>
+                        </div>
+                        <span v-if="form.errors.shop_id" class="mt-1 block text-xs text-rose-700">{{ form.errors.shop_id }}</span>
+                    </fieldset>
+
                     <fieldset class="mt-5">
                         <legend class="text-sm font-medium">Département</legend>
                         <div class="mt-2 flex flex-wrap gap-2">
@@ -198,7 +232,7 @@ const inputClasses = 'h-11 w-full rounded-xl border border-line bg-white px-3.5 
                                 Aucun
                             </button>
                             <button
-                                v-for="department in departments"
+                                v-for="department in shopDepartments"
                                 :key="department.id"
                                 type="button"
                                 class="rounded-full border px-4 py-2 text-sm transition"

@@ -8,6 +8,14 @@ export interface StatusValue {
 
 export type PunchTypeName = 'arrival' | 'break_start' | 'break_end' | 'departure';
 
+export interface KioskPunch {
+    id: number;
+    type: PunchTypeName;
+    label: string;
+    message: string;
+    time: string;
+}
+
 export interface PunchTypeValue {
     value: PunchTypeName;
     label: string;
@@ -18,8 +26,45 @@ export interface AuthUser {
     id: number;
     name: string;
     initials: string;
-    role: 'admin' | 'staff';
+    role: UserRoleName;
+    roleLabel: string;
     department: string | null;
+    shop: string | null;
+}
+
+export type UserRoleName = 'super_admin' | 'admin' | 'staff';
+
+export interface ShopOption {
+    id: number;
+    name: string;
+    isActive?: boolean;
+}
+
+export interface Shop {
+    id: number;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    isActive: boolean;
+    staffCount?: number;
+    kioskCount?: number;
+    managers?: { id: number; name: string; initials: string; isActive: boolean }[];
+    kiosks?: { name: string; url: string }[];
+    departments?: { id: number; name: string; staffCount: number }[];
+}
+
+export interface Manager {
+    id: number;
+    name: string;
+    initials: string;
+    email: string | null;
+    phone: string | null;
+    role: Exclude<UserRoleName, 'staff'>;
+    roleLabel: string;
+    isActive: boolean;
+    mustChangePassword: boolean;
+    shopIds?: number[];
+    shops?: string[];
 }
 
 export interface WorkScheduleInput {
@@ -33,6 +78,8 @@ export interface Employee {
     initials: string;
     phone: string | null;
     email: string | null;
+    shopId: number | null;
+    shop?: string | null;
     departmentId: number | null;
     department?: string | null;
     isActive: boolean;
@@ -44,6 +91,8 @@ export interface Employee {
 export interface Department {
     id: number;
     name: string;
+    shopId: number;
+    shop?: string | null;
     employeeCount?: number;
 }
 
@@ -53,6 +102,7 @@ export interface DayPunch {
     time: string;
     isManual: boolean;
     isOffline: boolean;
+    viaKioskLogin: boolean;
 }
 
 export interface PunchCorrectionEntry {
@@ -126,6 +176,7 @@ export interface Punch {
     isOffline: boolean;
     syncedAt: string | null;
     isManual: boolean;
+    viaKioskLogin: boolean;
     isCorrected?: boolean;
 }
 
@@ -176,6 +227,7 @@ export interface SharedProps {
     flash: {
         status: string | null;
     };
+    shopContext: { current: ShopOption | null; shops: ShopOption[] } | null;
     pendingLeaveCount: number;
     errors: Record<string, string>;
 }

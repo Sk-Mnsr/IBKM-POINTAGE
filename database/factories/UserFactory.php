@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\UserRole;
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -32,6 +33,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => UserRole::Staff,
+            'shop_id' => fn (array $attributes) => ($attributes['role'] ?? UserRole::Staff) === UserRole::Staff ? ShopFactory::firstOrNew() : null,
             'is_active' => true,
             'remember_token' => Str::random(10),
         ];
@@ -47,11 +49,30 @@ class UserFactory extends Factory
         ]);
     }
 
+    /**
+     * Shop manager. Attach shops with ->hasAttached($shop, [], 'shops') or ->forShops().
+     */
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::Admin,
+            'shop_id' => null,
         ]);
+    }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => UserRole::SuperAdmin,
+            'shop_id' => null,
+        ]);
+    }
+
+    public function forShops(Shop ...$shops): static
+    {
+        return $this->admin()->afterCreating(function (User $user) use ($shops): void {
+            $user->shops()->attach(collect($shops)->pluck('id'));
+        });
     }
 
     public function inactive(): static

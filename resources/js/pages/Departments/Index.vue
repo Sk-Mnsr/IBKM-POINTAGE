@@ -3,14 +3,22 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import Alert from '@/components/Alert.vue';
 import Icon from '@/components/Icon.vue';
+import { confirmAction } from '@/lib/confirm';
 import type { Department } from '@/types';
 
-defineProps<{ departments: Department[] }>();
+defineProps<{ departments: Department[]; showShop: boolean }>();
 
 const page = usePage();
 
-const destroy = (department: Department): void => {
-    if (!window.confirm(`Supprimer le département « ${department.name} » ?`)) {
+const destroy = async (department: Department): Promise<void> => {
+    const confirmed = await confirmAction({
+        title: `Supprimer le département « ${department.name} » ?`,
+        message: 'Il disparaîtra des filtres et des rapports. Un département qui a encore des employés ne peut pas être supprimé.',
+        confirmLabel: 'Supprimer',
+        danger: true,
+    });
+
+    if (!confirmed) {
         return;
     }
 
@@ -39,7 +47,9 @@ const destroy = (department: Department): void => {
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <p class="text-lg font-semibold">{{ department.name }}</p>
-                    <p class="text-sm text-ink/60">{{ department.employeeCount ?? 0 }} employé(s)</p>
+                    <p class="text-sm text-ink/60">
+                        <template v-if="showShop">{{ department.shop }} · </template>{{ department.employeeCount ?? 0 }} employé(s)
+                    </p>
                 </div>
                 <span class="grid size-10 place-items-center rounded-xl bg-brand/15 text-brand-dark">
                     <Icon name="building" />

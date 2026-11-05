@@ -25,7 +25,7 @@ class ReportTest extends TestCase
 
         $this->travelTo(CarbonImmutable::parse('2026-10-14 20:00'));
 
-        $this->admin = User::factory()->admin()->create();
+        $this->admin = User::factory()->superAdmin()->create();
         $this->employee = User::factory()->create(['name' => 'Awa Ndiaye']);
 
         WorkSchedule::factory()->create([
@@ -102,7 +102,7 @@ class ReportTest extends TestCase
     {
         $this->actingAs($this->employee)
             ->get(route('reports.index'))
-            ->assertForbidden();
+            ->assertRedirect(route('punch.create'));
     }
 
     public function test_admin_account_has_no_employee_sheet(): void

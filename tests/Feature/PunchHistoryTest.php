@@ -16,7 +16,7 @@ class PunchHistoryTest extends TestCase
 
     public function test_history_filters_by_employee(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $awa = User::factory()->create(['name' => 'Awa Ndiaye']);
         $fatou = User::factory()->create(['name' => 'Fatou Diop']);
         Punch::factory()->create(['user_id' => $awa->id, 'punched_at' => now()->setTime(9, 1, 0)]);
@@ -35,7 +35,7 @@ class PunchHistoryTest extends TestCase
 
     public function test_history_summarises_the_period_and_flags_late_arrivals(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $awa = User::factory()->create();
         WorkSchedule::factory()->create([
             'user_id' => $awa->id,
@@ -62,7 +62,7 @@ class PunchHistoryTest extends TestCase
 
     public function test_history_excludes_punches_outside_the_dates(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         Punch::factory()->create(['punched_at' => now()->subDays(30)->setTime(8, 45, 0)]);
 
         $this->actingAs($admin)
@@ -78,7 +78,7 @@ class PunchHistoryTest extends TestCase
     {
         Punch::factory()->create();
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('punches.export', ['du' => '2026-10-01', 'au' => '2026-10-31']))
             ->assertOk()
             ->assertDownload('pointages-20261001-20261031.xlsx');

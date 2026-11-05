@@ -1,9 +1,9 @@
 <?php
 
-use App\Enums\UserRole;
 use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsStaff;
+use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'super_admin' => EnsureUserIsSuperAdmin::class,
             'staff' => EnsureUserIsStaff::class,
             'password.changed' => EnsurePasswordIsChanged::class,
         ]);
@@ -32,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
 
         $middleware->redirectUsersTo(function (Request $request) {
-            return $request->user()?->role === UserRole::Admin
+            return $request->user()?->isAdmin()
                 ? route('dashboard')
                 : route('punch.create');
         });

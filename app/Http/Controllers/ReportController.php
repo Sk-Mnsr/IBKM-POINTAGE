@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Department;
+use App\Models\Shop;
 use App\Models\User;
 use App\Support\AttendanceCalculator;
 use App\Support\AttendanceSummary;
 use App\Support\Duration;
 use App\Support\ReportMonth;
+use App\Support\ShopContext;
 use App\Support\SpreadsheetExporter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -21,7 +23,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
-    public function __construct(private AttendanceCalculator $calculator) {}
+    public function __construct(private AttendanceCalculator $calculator, private ShopContext $shops) {}
 
     public function index(Request $request): InertiaResponse
     {
@@ -30,7 +32,9 @@ class ReportController extends Controller
         return Inertia::render('Reports/Index', [
             'month' => $report['month']->toArray(),
             'departmentId' => $report['department']?->id,
-            'departments' => DepartmentResource::collection(Department::query()->orderBy('name')->get())->resolve(),
+            'departments' => DepartmentResource::collection(
+                Department::query()->whereIn('shop_id', $this->shops->scopeIds())->orderBy('name')->get(),
+            )->resolve(),
             'rows' => $report['rows']->map(fn (array $row): array => [
                 'employee' => (new EmployeeResource($row['employee']))->resolve(),
                 'summary' => $row['summary']->toArray(),
@@ -61,7 +65,9 @@ class ReportController extends Controller
         return $exporter->download(
             fileName: 'rapport-mensuel-'.$report['month']->value().'.xlsx',
             title: 'Récapitulatif mensuel de présence',
-            subtitle: $report['month']->label().($report['department'] ? ' · '.$report['department']->name : ''),
+            subtitle: $report['month']->label()
+                .($report['shop'] ? ' · '.$report['shop']->name : '')
+                .($report['department'] ? ' · '.$report['department']->name : ''),
             headings: ['Employé', 'Département', 'Jours travaillés', 'Absences', 'Congés', 'Retards', 'Retards (h)', 'Heures prévues', 'Heures travaillées', 'Heures sup'],
             rows: $rows,
             totals: [
@@ -90,15 +96,18 @@ class ReportController extends Controller
     }
 
     /**
-     * @return array{month: ReportMonth, department: ?Department, rows: Collection<int, array{employee: User, summary: AttendanceSummary}>, totals: AttendanceSummary}
+     * @return array{month: ReportMonth, shop: ?Shop, department: ?Department, rows: Collection<int, array{employee: User, summary: AttendanceSummary}>, totals: AttendanceSummary}
      */
     private function report(Request $request): array
     {
         $month = ReportMonth::fromRequest($request);
-        $department = Department::query()->find($request->integer('departement') ?: null);
+        $department = Department::query()
+            ->whereIn('shop_id', $this->shops->scopeIds())
+            ->find($request->integer('departement') ?: null);
 
         $employees = User::query()
             ->staff()
+            ->whereIn('shop_id', $this->shops->scopeIds())
             ->with('department')
             ->when($department, fn ($query) => $query->where('department_id', $department->id))
             ->orderBy('name')
@@ -116,6 +125,7 @@ class ReportController extends Controller
 
         return [
             'month' => $month,
+            'shop' => $this->shops->current(),
             'department' => $department,
             'rows' => $rows,
             'totals' => AttendanceSummary::combine($rows->pluck('summary')),

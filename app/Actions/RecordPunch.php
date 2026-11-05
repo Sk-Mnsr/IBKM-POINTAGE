@@ -26,6 +26,19 @@ class RecordPunch
     }
 
     /**
+     * Records a punch typed on the tablet itself by an employee who has no phone, after checking their password.
+     */
+    public function handleAtKiosk(User $user, Kiosk $kiosk, PunchType $type): Punch
+    {
+        $resolved = ['kiosk' => $kiosk, 'window' => $this->tokens->window()];
+
+        return $this->store($user, $type, $resolved, now()->toImmutable(), [
+            'is_offline' => false,
+            'via_kiosk_login' => true,
+        ]);
+    }
+
+    /**
      * Records a punch made while the phone had no network. The scan time reported by the phone is only
      * trusted within the validity window of the code it scanned, so it cannot be moved freely.
      */
@@ -51,6 +64,12 @@ class RecordPunch
      */
     private function store(User $user, PunchType $type, array $resolved, CarbonImmutable $punchedAt, array $attributes): Punch
     {
+        if ($resolved['kiosk']->shop_id !== $user->shop_id) {
+            throw ValidationException::withMessages([
+                'token' => 'Ce code appartient à une autre boutique. Scannez la borne de votre boutique.',
+            ]);
+        }
+
         return DB::transaction(function () use ($user, $type, $resolved, $punchedAt, $attributes): Punch {
             User::query()->whereKey($user->id)->lockForUpdate()->first();
 

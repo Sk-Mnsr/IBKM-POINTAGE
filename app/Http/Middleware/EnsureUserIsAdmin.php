@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,8 +30,10 @@ class EnsureUserIsAdmin
             ]);
         }
 
-        if ($user->role !== UserRole::Admin) {
-            abort(403);
+        if (! $user->isAdmin()) {
+            abort_unless($request->isMethod('GET') && ! $request->expectsJson(), 403);
+
+            return redirect()->route('punch.create');
         }
 
         return $next($request);

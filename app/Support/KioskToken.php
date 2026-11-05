@@ -63,6 +63,7 @@ class KioskToken
         $kiosk = Kiosk::query()
             ->where('public_id', $publicId)
             ->where('is_active', true)
+            ->whereHas('shop', fn ($shops) => $shops->where('is_active', true))
             ->first();
 
         if ($kiosk === null || ! hash_equals($this->sign($kiosk, $window), $signature)) {

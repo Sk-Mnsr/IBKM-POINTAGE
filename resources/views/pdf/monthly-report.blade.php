@@ -5,7 +5,7 @@
 @section('title', 'Récapitulatif mensuel de présence')
 
 @section('subtitle')
-    {{ $month->label() }}@if ($department) · {{ $department->name }}@endif · {{ $rows->count() }} employé(s)
+    {{ $month->label() }}@if ($shop) · {{ $shop->name }}@endif @if ($department) · {{ $department->name }}@endif · {{ $rows->count() }} employé(s)
 @endsection
 
 @section('content')

@@ -32,7 +32,12 @@ class EnsureUserIsStaff
         }
 
         if ($user->role !== UserRole::Staff) {
-            abort(403);
+            abort_unless($request->isMethod('GET') && ! $request->expectsJson(), 403);
+
+            return redirect()->route('dashboard')->with(
+                'status',
+                'Cette page sert au pointage du personnel : vous êtes connecté(e) avec un compte gérant.',
+            );
         }
 
         return $next($request);

@@ -5,10 +5,15 @@ import { route } from 'ziggy-js';
 import Alert from '@/components/Alert.vue';
 import AppLogo from '@/components/AppLogo.vue';
 import Icon from '@/components/Icon.vue';
+import ShopSwitcher from '@/components/ShopSwitcher.vue';
 import { isCurrentPath } from '@/lib/format';
 
 const page = usePage();
 const menuOpen = ref(false);
+
+const isSuperAdmin = computed(() => page.props.auth.user?.role === 'super_admin');
+const shops = computed(() => page.props.shopContext?.shops ?? []);
+const currentShopId = computed(() => page.props.shopContext?.current?.id ?? null);
 
 const navigation = computed(() =>
     [
@@ -18,6 +23,12 @@ const navigation = computed(() =>
         { route: 'leaves.index', label: 'Congés', icon: 'plane', badge: page.props.pendingLeaveCount },
         { route: 'employees.index', label: 'Employés', icon: 'users', badge: 0 },
         { route: 'departments.index', label: 'Départements', icon: 'building', badge: 0 },
+        ...(isSuperAdmin.value
+            ? [
+                  { route: 'shops.index', label: 'Boutiques', icon: 'store', badge: 0 },
+                  { route: 'managers.index', label: 'Gérants', icon: 'user-cog', badge: 0 },
+              ]
+            : []),
     ].map((item) => {
         const href = route(item.route);
 
@@ -38,7 +49,18 @@ watch(() => page.url, () => {
                 <span class="pl-1 text-[11px] font-medium tracking-[0.2em] text-cream/50 uppercase">Pointage</span>
             </Link>
 
-            <nav class="mt-10 grid gap-1 text-sm">
+            <div class="mt-8 px-1">
+                <p class="mb-1.5 flex items-center gap-2 px-1 text-[11px] font-medium tracking-[0.15em] text-cream/45 uppercase">
+                    <Icon name="store" class="size-3.5" />
+                    Boutique
+                </p>
+                <ShopSwitcher v-if="shops.length > 1" :shops="shops" :current-id="currentShopId" />
+                <p v-else class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-cream">
+                    {{ shops[0]?.name ?? 'Aucune boutique' }}
+                </p>
+            </div>
+
+            <nav class="mt-6 grid gap-1 text-sm">
                 <Link
                     v-for="item in navigation"
                     :key="item.route"
@@ -57,7 +79,7 @@ watch(() => page.url, () => {
                     <span class="grid size-9 place-items-center rounded-full bg-white/10 text-xs font-semibold">{{ page.props.auth.user?.initials }}</span>
                     <span class="min-w-0">
                         <span class="block truncate text-sm font-medium">{{ page.props.auth.user?.name }}</span>
-                        <span class="block text-xs text-cream/50">Gérant</span>
+                        <span class="block text-xs text-cream/50">{{ page.props.auth.user?.roleLabel }}</span>
                     </span>
                 </div>
                 <div class="grid gap-1">
@@ -83,6 +105,7 @@ watch(() => page.url, () => {
                     <Icon :name="menuOpen ? 'x' : 'menu'" />
                 </button>
                 <nav v-show="menuOpen" class="grid gap-1 px-4 pb-4 text-sm">
+                    <ShopSwitcher v-if="shops.length > 1" class="mb-2" :shops="shops" :current-id="currentShopId" />
                     <Link
                         v-for="item in navigation"
                         :key="item.route"

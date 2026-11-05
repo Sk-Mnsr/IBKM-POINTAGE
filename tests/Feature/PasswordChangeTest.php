@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,8 @@ class PasswordChangeTest extends TestCase
 
     public function test_new_employee_must_choose_a_password_before_using_the_app(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
+        Shop::factory()->create();
 
         $this->actingAs($admin)->post(route('employees.store'), [
             'name' => 'Awa Ndiaye',
@@ -60,7 +62,7 @@ class PasswordChangeTest extends TestCase
 
     public function test_voluntary_change_requires_the_current_password(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
 
         $this->actingAs($admin)
             ->put(route('password.update'), [
@@ -102,7 +104,7 @@ class PasswordChangeTest extends TestCase
 
     public function test_manager_reset_requires_a_new_change_unless_disabled(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $employee = User::factory()->create();
 
         $this->actingAs($admin)->put(route('employees.update', $employee), [
@@ -126,7 +128,7 @@ class PasswordChangeTest extends TestCase
 
     public function test_editing_without_new_password_keeps_the_flag_unchanged(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $employee = User::factory()->create(['must_change_password' => false]);
 
         $this->actingAs($admin)->put(route('employees.update', $employee), [

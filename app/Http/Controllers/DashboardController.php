@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\AttendanceCalculator;
 use App\Support\AttendanceSummary;
 use App\Support\DailyAttendance;
+use App\Support\ShopContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -31,15 +32,17 @@ class DashboardController extends Controller
         AttendanceStatus::DayOff,
     ];
 
-    public function index(AttendanceCalculator $calculator): Response
+    public function index(AttendanceCalculator $calculator, ShopContext $shops): Response
     {
+        $shopIds = $shops->scopeIds();
         $now = CarbonImmutable::now();
         $today = $now->startOfDay();
 
         $employees = User::query()
             ->staff()
             ->where('is_active', true)
-            ->with('department')
+            ->whereIn('shop_id', $shopIds)
+            ->with(['department', 'shop'])
             ->orderBy('name')
             ->get();
 
@@ -84,12 +87,14 @@ class DashboardController extends Controller
                 'awaited' => $todayDays->filter(fn (DailyAttendance $day): bool => $this->isAwaitedToday($day))->count(),
                 'team' => $todayDays->count(),
             ],
-            'departments' => $this->departmentBreakdown($rows),
+            'breakdownTitle' => $shops->isMultiShop() ? 'Par boutique' : 'Par département',
+            'departments' => $this->departmentBreakdown($rows, $shops->isMultiShop()),
             'chart' => $this->weekChart($week, $today),
             'monthSummary' => $monthSummary->toArray(),
             'recentPunches' => PunchResource::collection(
                 Punch::query()
                     ->with('user')
+                    ->whereHas('user', fn ($users) => $users->whereIn('shop_id', $shopIds))
                     ->whereDate('punched_at', $today)
                     ->latest('punched_at')
                     ->limit(8)
@@ -98,17 +103,20 @@ class DashboardController extends Controller
             'pendingLeaves' => LeaveRequestResource::collection(
                 LeaveRequest::query()
                     ->with('user')
+                    ->inShops($shopIds)
                     ->where('status', LeaveStatus::Pending)
                     ->oldest('starts_on')
                     ->limit(4)
                     ->get(),
             )->resolve(),
             'kiosks' => Kiosk::query()
+                ->with('shop')
                 ->where('is_active', true)
+                ->whereIn('shop_id', $shopIds)
                 ->orderBy('name')
                 ->get()
                 ->map(fn (Kiosk $kiosk): array => [
-                    'name' => $kiosk->name,
+                    'name' => $shops->isMultiShop() ? "{$kiosk->name} · {$kiosk->shop?->name}" : $kiosk->name,
                     'url' => route('kiosk.show', $kiosk),
                 ])
                 ->all(),
@@ -124,13 +132,17 @@ class DashboardController extends Controller
     }
 
     /**
+     * Groups today's team by shop when several shops are shown, by department otherwise.
+     *
      * @param  Collection<int, array{employee: User, day: DailyAttendance}>  $rows
      * @return list<array{name: string, team: int, awaited: int, arrived: int, onSite: int}>
      */
-    private function departmentBreakdown(Collection $rows): array
+    private function departmentBreakdown(Collection $rows, bool $byShop): array
     {
         return $rows
-            ->groupBy(fn (array $row): string => $row['employee']->department->name ?? 'Sans département')
+            ->groupBy(fn (array $row): string => $byShop
+                ? ($row['employee']->shop->name ?? 'Sans boutique')
+                : ($row['employee']->department->name ?? 'Sans département'))
             ->map(fn (Collection $group, string $name): array => [
                 'name' => $name,
                 'team' => $group->count(),

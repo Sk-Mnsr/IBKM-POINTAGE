@@ -19,6 +19,7 @@ class KioskFactory extends Factory
     public function definition(): array
     {
         return [
+            'shop_id' => fn () => ShopFactory::firstOrNew(),
             'name' => 'Accueil',
             'public_id' => (string) Str::ulid(),
             'secret' => Str::random(40),

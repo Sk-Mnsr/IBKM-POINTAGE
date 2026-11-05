@@ -3,8 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
-use App\Models\Department;
-use App\Models\Kiosk;
+use App\Models\Shop;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -16,19 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        foreach (['Coiffure', 'Esthétique', 'Onglerie', 'Caisse'] as $name) {
-            Department::query()->firstOrCreate(['name' => $name]);
+        if (! Shop::query()->exists()) {
+            Shop::query()->create(['name' => config('pointage.institute_name')])->provisionDefaults();
         }
 
-        $this->createAdmin();
-
-        Kiosk::query()->firstOrCreate(['name' => 'Accueil'], [
-            'public_id' => (string) Str::ulid(),
-            'secret' => Str::random(40),
-        ]);
+        $this->createSuperAdmin();
     }
 
-    private function createAdmin(): void
+    private function createSuperAdmin(): void
     {
         $config = config('pointage.admin');
         $password = $config['password'] ?: Str::password(12, symbols: false);
@@ -39,7 +33,7 @@ class DatabaseSeeder extends Seeder
                 'name' => $config['name'],
                 'phone' => $config['phone'],
                 'password' => $password,
-                'role' => UserRole::Admin,
+                'role' => UserRole::SuperAdmin,
                 'email_verified_at' => now(),
             ],
         );

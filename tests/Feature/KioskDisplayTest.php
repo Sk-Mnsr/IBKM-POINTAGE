@@ -21,7 +21,7 @@ class KioskDisplayTest extends TestCase
         $kiosk = Kiosk::factory()->create(['name' => 'Accueil']);
         $token = app(KioskToken::class)->issue($kiosk)['token'];
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('kiosk.show', $kiosk))
             ->assertOk()
             ->assertDontSee($kiosk->secret)
@@ -63,7 +63,7 @@ class KioskDisplayTest extends TestCase
     {
         $kiosk = Kiosk::factory()->create();
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->post(route('kiosk.pair', $kiosk))
             ->assertRedirect(route('kiosk.show', $kiosk))
             ->assertCookie($kiosk->pairingCookieName(), $kiosk->pairingCookieValue());
@@ -83,7 +83,7 @@ class KioskDisplayTest extends TestCase
         $oldCookie = $kiosk->pairingCookieValue();
         $storedCode = app(KioskToken::class)->issue($kiosk)['token'];
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->delete(route('kiosk.unpair', $kiosk))
             ->assertRedirect(route('dashboard'));
 
@@ -130,7 +130,7 @@ class KioskDisplayTest extends TestCase
     public function test_inactive_tablet_is_not_found(): void
     {
         $kiosk = Kiosk::factory()->create(['is_active' => false]);
-        $this->actingAs(User::factory()->admin()->create());
+        $this->actingAs(User::factory()->superAdmin()->create());
 
         $this->get(route('kiosk.show', $kiosk))->assertNotFound();
         $this->getJson(route('kiosk.token', $kiosk))->assertNotFound();
@@ -143,7 +143,7 @@ class KioskDisplayTest extends TestCase
         $kiosk = Kiosk::factory()->create();
         $punch = Punch::factory()->create(['kiosk_id' => $kiosk->id]);
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('kiosk.show', $kiosk))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('lastPunchId', $punch->id)

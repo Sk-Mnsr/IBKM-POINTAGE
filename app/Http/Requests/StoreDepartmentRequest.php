@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Enums\UserRole;
+use App\Support\ShopContext;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,7 +11,14 @@ class StoreDepartmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === UserRole::Admin;
+        return $this->user()?->isAdmin() === true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('shop_id')) {
+            $this->merge(['shop_id' => app(ShopContext::class)->defaultShopId()]);
+        }
     }
 
     /**
@@ -20,7 +27,13 @@ class StoreDepartmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('departments', 'name')],
+            'shop_id' => ['required', 'integer', Rule::in($this->user()?->accessibleShopIds() ?? [])],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('departments', 'name')->where('shop_id', (int) $this->input('shop_id')),
+            ],
         ];
     }
 
@@ -31,7 +44,9 @@ class StoreDepartmentRequest extends FormRequest
     {
         return [
             'name.required' => 'Le nom du département est obligatoire.',
-            'name.unique' => 'Ce département existe déjà.',
+            'name.unique' => 'Ce département existe déjà dans cette boutique.',
+            'shop_id.required' => 'Choisissez la boutique.',
+            'shop_id.in' => 'Vous ne gérez pas cette boutique.',
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\LeaveStatus;
 use App\Http\Requests\ReviewLeaveRequestRequest;
 use App\Http\Resources\LeaveRequestResource;
 use App\Models\LeaveRequest;
+use App\Support\ShopContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,12 +14,14 @@ use Inertia\Response;
 
 class LeaveReviewController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ShopContext $shops): Response
     {
+        $shopIds = $shops->scopeIds();
         $status = LeaveStatus::tryFrom($request->string('statut')->toString());
 
         $leaveRequests = LeaveRequest::query()
             ->with(['user', 'reviewer'])
+            ->inShops($shopIds)
             ->when($status, fn ($query) => $query->where('status', $status))
             ->orderByRaw('case when status = ? then 0 else 1 end', [LeaveStatus::Pending->value])
             ->latest('starts_on')
@@ -26,6 +29,7 @@ class LeaveReviewController extends Controller
             ->withQueryString();
 
         $countsByStatus = LeaveRequest::query()
+            ->inShops($shopIds)
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -40,11 +44,12 @@ class LeaveReviewController extends Controller
                 'pending' => (int) ($countsByStatus[LeaveStatus::Pending->value] ?? 0),
                 'approved' => (int) ($countsByStatus[LeaveStatus::Approved->value] ?? 0),
                 'rejected' => (int) ($countsByStatus[LeaveStatus::Rejected->value] ?? 0),
-                'onLeaveToday' => LeaveRequest::query()->approved()->overlapping($today, $today)->distinct()->count('user_id'),
+                'onLeaveToday' => LeaveRequest::query()->inShops($shopIds)->approved()->overlapping($today, $today)->distinct()->count('user_id'),
             ],
             'upcoming' => LeaveRequestResource::collection(
                 LeaveRequest::query()
                     ->with('user')
+                    ->inShops($shopIds)
                     ->approved()
                     ->whereDate('ends_on', '>=', $today)
                     ->orderBy('starts_on')

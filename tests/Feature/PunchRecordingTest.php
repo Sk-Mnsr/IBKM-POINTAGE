@@ -93,10 +93,21 @@ class PunchRecordingTest extends TestCase
         $this->assertDatabaseCount('punches', 0);
     }
 
-    public function test_admin_cannot_punch(): void
+    public function test_manager_opening_the_punch_page_is_sent_to_the_dashboard(): void
     {
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('punch.create'))
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('status', 'Cette page sert au pointage du personnel : vous êtes connecté(e) avec un compte gérant.');
+    }
+
+    public function test_manager_cannot_record_a_punch(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->post(route('punch.store'), [
+                'token' => app(KioskToken::class)->issue(Kiosk::factory()->create())['token'],
+                'type' => PunchType::Arrival->value,
+            ])
             ->assertForbidden();
     }
 

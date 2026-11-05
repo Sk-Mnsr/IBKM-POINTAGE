@@ -121,6 +121,7 @@ class DailyAttendance
                     'time' => $punch->punched_at->format('H:i'),
                     'isManual' => $punch->is_manual,
                     'isOffline' => $punch->is_offline,
+                    'viaKioskLogin' => $punch->via_kiosk_login,
                 ])
                 ->values()
                 ->all(),

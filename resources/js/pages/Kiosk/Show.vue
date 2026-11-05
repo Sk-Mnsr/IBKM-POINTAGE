@@ -3,8 +3,10 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import Icon from '@/components/Icon.vue';
+import KioskLoginPunch from '@/components/KioskLoginPunch.vue';
+import { confirmAction } from '@/lib/confirm';
 import qrcode from '@/vendor/qrcode.js';
-import type { PunchTypeName } from '@/types';
+import type { KioskPunch } from '@/types';
 
 interface CodeBatch {
     offset: number;
@@ -12,16 +14,9 @@ interface CodeBatch {
     tokens: { window: number; token: string }[];
 }
 
-interface KioskPunch {
-    id: number;
-    type: PunchTypeName;
-    label: string;
-    message: string;
-    time: string;
-}
-
 const props = defineProps<{
     kioskName: string;
+    shopName: string | null;
     kioskId: string;
     token: string;
     expiresIn: number;
@@ -31,6 +26,8 @@ const props = defineProps<{
     activityUrl: string;
     isPaired: boolean;
     pairUrl: string;
+    identifyUrl: string;
+    kioskPunchUrl: string;
     scanUrl: string;
     lastPunchId: number;
 }>();
@@ -62,6 +59,7 @@ const offline = ref(false);
 const isFullscreen = ref(false);
 const greeting = ref<KioskPunch | null>(null);
 const queue: KioskPunch[] = [];
+const greetedIds = new Set<number>();
 let lastPunchId = props.lastPunchId;
 let refreshing = false;
 let clockTimer: number | undefined;
@@ -200,8 +198,15 @@ const pairTablet = (): void => {
     router.post(props.pairUrl);
 };
 
-const unpairTablets = (): void => {
-    if (window.confirm('Désappairer toutes les tablettes de cette borne ? Il faudra les appairer à nouveau.')) {
+const unpairTablets = async (): Promise<void> => {
+    const confirmed = await confirmAction({
+        title: 'Désappairer toutes les tablettes ?',
+        message: 'Les tablettes de cette borne n’afficheront plus le QR code tant qu’un gérant ne les aura pas appairées à nouveau.',
+        confirmLabel: 'Désappairer',
+        danger: true,
+    });
+
+    if (confirmed) {
         router.delete(props.pairUrl);
     }
 };
@@ -248,6 +253,7 @@ const showNextGreeting = (): void => {
         return;
     }
 
+    greetedIds.add(next.id);
     greeting.value = next;
     chime();
     speak(next.message);
@@ -269,13 +275,21 @@ const pollActivity = async (): Promise<void> => {
         }
 
         lastPunchId = data.punches[data.punches.length - 1].id;
-        queue.push(...data.punches);
+        queue.push(...data.punches.filter((punch) => !greetedIds.has(punch.id) && !queue.some((queued) => queued.id === punch.id)));
 
         if (!greeting.value) {
             showNextGreeting();
         }
     } catch {
         offline.value = true;
+    }
+};
+
+const greetPunchedAtKiosk = (punch: KioskPunch): void => {
+    queue.push(punch);
+
+    if (!greeting.value) {
+        showNextGreeting();
     }
 };
 
@@ -336,7 +350,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head :title="`Borne · ${kioskName}`" />
+    <Head :title="`Borne · ${shopName ?? kioskName}`" />
 
     <main class="relative min-h-screen overflow-hidden bg-ink text-cream select-none">
         <div class="pointer-events-none absolute -top-48 -left-40 size-[38rem] rounded-full bg-brand/20 blur-3xl" />
@@ -358,6 +372,7 @@ onBeforeUnmount(() => {
             <header class="flex items-start justify-between gap-6">
                 <div class="grid gap-2">
                     <AppLogo variant="light" class="w-48 sm:w-60" />
+                    <p v-if="shopName" class="pl-1 text-sm font-medium tracking-[0.2em] text-brand uppercase">{{ shopName }}</p>
                 </div>
                 <div class="text-right">
                     <p class="text-5xl font-semibold tracking-tight tabular-nums sm:text-6xl">{{ clock }}</p>
@@ -388,6 +403,8 @@ onBeforeUnmount(() => {
                             <span class="text-3xl font-semibold text-white/10 tabular-nums">{{ index + 1 }}</span>
                         </li>
                     </ol>
+
+                    <KioskLoginPunch class="mt-6" :identify-url="identifyUrl" :punch-url="kioskPunchUrl" @punched="greetPunchedAtKiosk" />
                 </div>
 
                 <div class="order-1 flex flex-col items-center gap-5 lg:order-2">
@@ -441,7 +458,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="flex items-center gap-2">
                 <button
-                    v-if="isPaired && page.props.auth.user?.role === 'admin'"
+                    v-if="isPaired && page.props.auth.user && page.props.auth.user.role !== 'staff'"
                     type="button"
                     class="rounded-full px-3 py-2 text-xs text-cream/40 hover:text-rose-200"
                     @click="unpairTablets"

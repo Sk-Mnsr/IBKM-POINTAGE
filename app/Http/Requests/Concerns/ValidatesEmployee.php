@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\ShopContext;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -13,8 +13,12 @@ trait ValidatesEmployee
     {
         $email = $this->input('email');
         $departmentId = $this->input('department_id');
+        $shopId = $this->input('shop_id');
 
         $this->merge([
+            'shop_id' => $shopId === null || $shopId === ''
+                ? ($this->route('employee')?->shop_id ?? app(ShopContext::class)->defaultShopId())
+                : $shopId,
             'email' => $email === '' ? null : $email,
             'department_id' => $departmentId === '' ? null : $departmentId,
             'phone' => preg_replace('/\s+/', '', (string) $this->input('phone')),
@@ -30,7 +34,12 @@ trait ValidatesEmployee
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($employee)],
             'phone' => ['required', 'regex:/^[0-9]{8,15}$/', Rule::unique('users', 'phone')->ignore($employee)],
-            'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')],
+            'shop_id' => ['required', 'integer', Rule::in($this->user()?->accessibleShopIds() ?? [])],
+            'department_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('departments', 'id')->where('shop_id', (int) $this->input('shop_id')),
+            ],
             'password' => [$employee === null ? 'required' : 'nullable', 'string', 'min:8'],
             'is_active' => ['required', 'boolean'],
             'must_change_password' => ['sometimes', 'boolean'],
@@ -88,12 +97,14 @@ trait ValidatesEmployee
             'email.unique' => 'Cet e-mail est déjà utilisé.',
             'password.required' => 'Le mot de passe est obligatoire.',
             'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'department_id.exists' => 'Ce département n\'existe pas.',
+            'shop_id.required' => 'Choisissez la boutique.',
+            'shop_id.in' => 'Vous ne gérez pas cette boutique.',
+            'department_id.exists' => 'Ce département n\'appartient pas à cette boutique.',
         ];
     }
 
     public function authorizeAdmin(): bool
     {
-        return $this->user()?->role === UserRole::Admin;
+        return $this->user()?->isAdmin() === true;
     }
 }

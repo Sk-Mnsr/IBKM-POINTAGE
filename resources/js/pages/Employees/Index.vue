@@ -7,7 +7,7 @@ import { formatDuration } from '@/lib/format';
 import { scheduleSummary, weeklyMinutes } from '@/lib/schedule';
 import type { Department, Employee } from '@/types';
 
-const props = defineProps<{ employees: Employee[]; departments: Department[] }>();
+const props = defineProps<{ employees: Employee[]; departments: Department[]; showShop: boolean }>();
 
 const search = ref('');
 const departmentFilter = ref<number | null>(null);
@@ -84,7 +84,9 @@ const formatPhone = (phone: string | null): string => (phone ?? '').replace(/(\d
                 </span>
                 <span>
                     <span class="block text-2xl font-semibold tabular-nums">{{ departmentCount(department.id) }}</span>
-                    <span class="block text-xs" :class="departmentFilter === department.id ? 'text-cream/60' : 'text-ink/55'">{{ department.name }}</span>
+                    <span class="block text-xs" :class="departmentFilter === department.id ? 'text-cream/60' : 'text-ink/55'">
+                        {{ department.name }}<template v-if="showShop"> · {{ department.shop }}</template>
+                    </span>
                 </span>
             </button>
         </section>
@@ -127,7 +129,7 @@ const formatPhone = (phone: string | null): string => (phone ?? '').replace(/(\d
                         <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-sm font-semibold" :class="avatarClasses(employee)">{{ employee.initials }}</span>
                         <div class="min-w-0">
                             <p class="truncate font-medium group-hover:text-brand-dark">{{ employee.name }}</p>
-                            <p class="truncate text-xs text-ink/50">{{ employee.department ?? 'Sans département' }} · {{ employee.email ?? 'Sans e-mail' }}</p>
+                            <p class="truncate text-xs text-ink/50"><template v-if="showShop">{{ employee.shop }} · </template>{{ employee.department ?? 'Sans département' }} · {{ employee.email ?? 'Sans e-mail' }}</p>
                         </div>
                     </div>
 

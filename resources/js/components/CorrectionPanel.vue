@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
+import { confirmAction } from '@/lib/confirm';
 import { formatDuration, punchCircleClasses, punchIcon } from '@/lib/format';
 import type { DailyAttendance, DayPunch, PunchCorrectionEntry, PunchTypeName, PunchTypeValue } from '@/types';
 
@@ -90,8 +91,15 @@ const saveEdit = (punch: DayPunch): void => {
     router.put(route('punches.corrections.update', punch.id), { time: editForm.time, type: editForm.type, reason: reason.value }, submitOptions);
 };
 
-const deletePunch = (punch: DayPunch): void => {
-    if (!window.confirm(`Supprimer « ${punch.type.label} » de ${punch.time} ?`)) {
+const deletePunch = async (punch: DayPunch): Promise<void> => {
+    const confirmed = await confirmAction({
+        title: `Supprimer « ${punch.type.label} » de ${punch.time} ?`,
+        message: 'La suppression est conservée dans le journal des corrections avec son motif.',
+        confirmLabel: 'Supprimer',
+        danger: true,
+    });
+
+    if (!confirmed) {
         return;
     }
 
@@ -160,8 +168,8 @@ const fieldClasses = 'h-10 rounded-xl border border-line bg-white px-3 text-sm o
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="block text-sm font-medium">{{ punch.type.label }}</span>
-                                    <span v-if="punch.isManual || punch.isOffline" class="block text-xs text-ink/45">
-                                        {{ punch.isManual ? 'Saisi par le gérant' : 'Envoyé hors ligne' }}
+                                    <span v-if="punch.isManual || punch.isOffline || punch.viaKioskLogin" class="block text-xs text-ink/45">
+                                        {{ punch.isManual ? 'Saisi par le gérant' : punch.isOffline ? 'Envoyé hors ligne' : 'Identifiants saisis sur la borne' }}
                                     </span>
                                 </span>
                                 <span class="text-base font-semibold tabular-nums">{{ punch.time }}</span>

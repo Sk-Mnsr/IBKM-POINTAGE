@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'department_id', 'role', 'is_active', 'must_change_password', 'password_changed_at'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'department_id', 'shop_id', 'role', 'is_active', 'must_change_password', 'password_changed_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -47,9 +48,46 @@ class User extends Authenticatable
         return $query->where('role', UserRole::Staff);
     }
 
+    /**
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    #[Scope]
+    protected function managers(Builder $query): Builder
+    {
+        return $query->whereIn('role', [UserRole::Admin, UserRole::SuperAdmin]);
+    }
+
+    /**
+     * Manager of at least one shop (shop manager or super admin).
+     */
     public function isAdmin(): bool
     {
-        return $this->role === UserRole::Admin;
+        return $this->role->isManager();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === UserRole::SuperAdmin;
+    }
+
+    /**
+     * Shops this user may see and manage. A super admin sees every shop, closed ones included.
+     *
+     * @return list<int>
+     */
+    public function accessibleShopIds(): array
+    {
+        return match (true) {
+            $this->isSuperAdmin() => Shop::query()->orderBy('name')->pluck('id')->all(),
+            $this->role === UserRole::Admin => $this->shops()->where('is_active', true)->orderBy('name')->pluck('shops.id')->all(),
+            default => $this->shop_id === null ? [] : [$this->shop_id],
+        };
+    }
+
+    public function canAccessShop(?int $shopId): bool
+    {
+        return $shopId !== null && in_array($shopId, $this->accessibleShopIds(), true);
     }
 
     public function givenName(): string
@@ -63,6 +101,26 @@ class User extends Authenticatable
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Shop a staff member works in.
+     *
+     * @return BelongsTo<Shop, $this>
+     */
+    public function shop(): BelongsTo
+    {
+        return $this->belongsTo(Shop::class);
+    }
+
+    /**
+     * Shops a manager is in charge of.
+     *
+     * @return BelongsToMany<Shop, $this>
+     */
+    public function shops(): BelongsToMany
+    {
+        return $this->belongsToMany(Shop::class)->withTimestamps();
     }
 
     /**

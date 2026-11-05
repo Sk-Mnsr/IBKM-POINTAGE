@@ -19,6 +19,8 @@ class DepartmentResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'shopId' => $this->shop_id,
+            'shop' => $this->whenLoaded('shop', fn (): ?string => $this->shop?->name),
             'employeeCount' => $this->whenCounted('users'),
         ];
     }

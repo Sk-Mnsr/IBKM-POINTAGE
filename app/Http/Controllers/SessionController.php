@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -44,7 +43,7 @@ class SessionController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended($user->role === UserRole::Admin ? route('dashboard') : route('punch.create'));
+        return redirect()->intended($user->isAdmin() ? route('dashboard') : route('punch.create'));
     }
 
     public function destroy(Request $request): RedirectResponse

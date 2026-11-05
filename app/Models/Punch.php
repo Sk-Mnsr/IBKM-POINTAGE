@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-#[Fillable(['uuid', 'user_id', 'kiosk_id', 'type', 'punched_at', 'qr_window', 'is_offline', 'synced_at', 'is_manual'])]
+#[Fillable(['uuid', 'user_id', 'kiosk_id', 'type', 'punched_at', 'qr_window', 'is_offline', 'synced_at', 'is_manual', 'via_kiosk_login'])]
 class Punch extends Model
 {
     /** @use HasFactory<PunchFactory> */
@@ -35,6 +35,7 @@ class Punch extends Model
             'punched_at' => 'datetime',
             'is_offline' => 'boolean',
             'is_manual' => 'boolean',
+            'via_kiosk_login' => 'boolean',
             'synced_at' => 'datetime',
         ];
     }

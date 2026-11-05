@@ -9,7 +9,7 @@ import qrcode from '@/vendor/qrcode.js';
 const page = usePage();
 
 const user = computed(() => page.props.auth.user);
-const resumeUrl = computed(() => (user.value?.role === 'admin' ? route('dashboard') : route('punch.create')));
+const resumeUrl = computed(() => (user.value && user.value.role !== 'staff' ? route('dashboard') : route('punch.create')));
 
 const features = [
     { icon: 'qr', title: 'QR code sécurisé', detail: 'Renouvelé toutes les 30 secondes sur la tablette de l’accueil.' },

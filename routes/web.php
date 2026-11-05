@@ -1,18 +1,22 @@
 <?php
 
+use App\Http\Controllers\CurrentShopController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\KioskDisplayController;
+use App\Http\Controllers\KioskPunchController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LeaveReviewController;
+use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\PunchController;
 use App\Http\Controllers\PunchCorrectionController;
 use App\Http\Controllers\PunchHistoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StaffHistoryController;
 use App\Http\Controllers\StaffScheduleController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +43,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
     Route::get('/tableau-de-bord', [DashboardController::class, 'index'])->name('dashboard');
+    Route::put('/boutique-active', [CurrentShopController::class, 'update'])->name('current-shop.update');
 
     Route::resource('employes', EmployeeController::class)
         ->except(['show', 'destroy'])
@@ -67,6 +72,18 @@ Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
 
     Route::get('/conges', [LeaveReviewController::class, 'index'])->name('leaves.index');
     Route::patch('/conges/{leaveRequest}', [LeaveReviewController::class, 'update'])->name('leaves.update');
+
+    Route::middleware('super_admin')->group(function () {
+        Route::resource('boutiques', ShopController::class)
+            ->except(['show', 'destroy'])
+            ->parameters(['boutiques' => 'shop'])
+            ->names('shops');
+
+        Route::resource('gerants', ManagerController::class)
+            ->except(['show', 'destroy'])
+            ->parameters(['gerants' => 'manager'])
+            ->names('managers');
+    });
 });
 
 Route::middleware(['auth', 'staff', 'password.changed'])->group(function () {
@@ -88,6 +105,12 @@ Route::get('/borne/{kiosk}', [KioskDisplayController::class, 'show'])->name('kio
 Route::get('/borne/{kiosk}/jeton', [KioskDisplayController::class, 'token'])->name('kiosk.token');
 Route::get('/borne/{kiosk}/jetons', [KioskDisplayController::class, 'tokens'])->name('kiosk.tokens');
 Route::get('/borne/{kiosk}/activite', [KioskDisplayController::class, 'activity'])->name('kiosk.activity');
+Route::post('/borne/{kiosk}/identification', [KioskPunchController::class, 'identify'])
+    ->middleware('throttle:30,1')
+    ->name('kiosk.identify');
+Route::post('/borne/{kiosk}/pointage', [KioskPunchController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('kiosk.punch');
 
 Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
     Route::post('/borne/{kiosk}/appairage', [KioskDisplayController::class, 'pair'])->name('kiosk.pair');

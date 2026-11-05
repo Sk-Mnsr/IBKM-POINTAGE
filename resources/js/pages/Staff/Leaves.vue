@@ -4,6 +4,7 @@ import { route } from 'ziggy-js';
 import Alert from '@/components/Alert.vue';
 import Icon from '@/components/Icon.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
+import { confirmAction } from '@/lib/confirm';
 import type { LeaveRequest } from '@/types';
 
 defineProps<{
@@ -28,8 +29,16 @@ const submit = (): void => {
     });
 };
 
-const cancel = (leave: LeaveRequest): void => {
-    if (!window.confirm('Annuler cette demande ?')) {
+const cancel = async (leave: LeaveRequest): Promise<void> => {
+    const confirmed = await confirmAction({
+        title: 'Annuler cette demande ?',
+        message: `Congé ${leave.shortPeriod}. Le gérant ne la verra plus.`,
+        confirmLabel: 'Annuler la demande',
+        cancelLabel: 'Garder',
+        danger: true,
+    });
+
+    if (!confirmed) {
         return;
     }
 

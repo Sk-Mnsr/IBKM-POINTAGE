@@ -19,7 +19,7 @@ class KioskDisplayController extends Controller
 
     public function show(Request $request, Kiosk $kiosk): Response
     {
-        abort_unless($kiosk->is_active, 404);
+        abort_unless($kiosk->isOpen(), 404);
 
         if (! $this->canOperate($request, $kiosk)) {
             $request->session()->put('url.intended', route('kiosk.show', $kiosk));
@@ -33,6 +33,7 @@ class KioskDisplayController extends Controller
 
         return Inertia::render('Kiosk/Show', [
             'kioskName' => $kiosk->name,
+            'shopName' => $kiosk->shop?->name,
             'kioskId' => $kiosk->public_id,
             'token' => $issued['token'],
             'expiresIn' => $issued['expires_in'],
@@ -44,6 +45,8 @@ class KioskDisplayController extends Controller
             'lastPunchId' => (int) $kiosk->punches()->max('id'),
             'isPaired' => $this->isPaired($request, $kiosk),
             'pairUrl' => route('kiosk.pair', $kiosk),
+            'identifyUrl' => route('kiosk.identify', $kiosk),
+            'kioskPunchUrl' => route('kiosk.punch', $kiosk),
         ]);
     }
 
@@ -97,9 +100,9 @@ class KioskDisplayController extends Controller
         ]);
     }
 
-    public function pair(Kiosk $kiosk): RedirectResponse
+    public function pair(Request $request, Kiosk $kiosk): RedirectResponse
     {
-        abort_unless($kiosk->is_active, 404);
+        abort_unless($kiosk->isOpen() && $this->managesKiosk($request, $kiosk), 404);
 
         Cookie::queue(Cookie::forever($kiosk->pairingCookieName(), $kiosk->pairingCookieValue()));
 
@@ -111,8 +114,10 @@ class KioskDisplayController extends Controller
     /**
      * Rotating the secret also voids the codes already stored on the tablets for offline use.
      */
-    public function unpair(Kiosk $kiosk): RedirectResponse
+    public function unpair(Request $request, Kiosk $kiosk): RedirectResponse
     {
+        abort_unless($this->managesKiosk($request, $kiosk), 404);
+
         $kiosk->forceFill([
             'secret' => Str::random(40),
             'pairing_version' => $kiosk->pairing_version + 1,
@@ -127,19 +132,22 @@ class KioskDisplayController extends Controller
 
     private function ensureCanOperate(Request $request, Kiosk $kiosk): void
     {
-        abort_unless($kiosk->is_active, 404);
+        abort_unless($kiosk->isOpen(), 404);
         abort_unless($this->canOperate($request, $kiosk), 403);
     }
 
     private function canOperate(Request $request, Kiosk $kiosk): bool
     {
-        return $request->user()?->isAdmin() === true || $this->isPaired($request, $kiosk);
+        return $kiosk->canBeOperatedFrom($request);
+    }
+
+    private function managesKiosk(Request $request, Kiosk $kiosk): bool
+    {
+        return $kiosk->isManagedBy($request->user());
     }
 
     private function isPaired(Request $request, Kiosk $kiosk): bool
     {
-        $value = $request->cookie($kiosk->pairingCookieName());
-
-        return is_string($value) && hash_equals($kiosk->pairingCookieValue(), $value);
+        return $kiosk->isPairedWith($request);
     }
 }

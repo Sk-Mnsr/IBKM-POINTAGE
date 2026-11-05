@@ -8,21 +8,34 @@ use App\Http\Requests\UpdateEmployeeRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Department;
+use App\Models\Shop;
 use App\Models\User;
 use App\Models\WorkSchedule;
+use App\Support\ShopContext;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EmployeeController extends Controller
 {
+    public function __construct(private ShopContext $shops) {}
+
     public function index(): Response
     {
         return Inertia::render('Employees/Index', [
             'employees' => EmployeeResource::collection(
-                User::query()->staff()->with(['department', 'workSchedules'])->withCount('workSchedules')->orderBy('name')->get(),
+                User::query()
+                    ->staff()
+                    ->whereIn('shop_id', $this->shops->scopeIds())
+                    ->with(['department', 'shop', 'workSchedules'])
+                    ->withCount('workSchedules')
+                    ->orderBy('name')
+                    ->get(),
             )->resolve(),
-            'departments' => DepartmentResource::collection(Department::query()->orderBy('name')->get())->resolve(),
+            'departments' => DepartmentResource::collection(
+                Department::query()->whereIn('shop_id', $this->shops->scopeIds())->orderBy('name')->get(),
+            )->resolve(),
+            'showShop' => $this->shops->isMultiShop(),
         ]);
     }
 
@@ -40,6 +53,7 @@ class EmployeeController extends Controller
             'name' => $request->string('name')->toString(),
             'email' => $request->validated('email'),
             'phone' => $request->string('phone')->toString(),
+            'shop_id' => $request->validated('shop_id'),
             'department_id' => $request->validated('department_id'),
             'password' => $request->string('password')->toString(),
             'role' => UserRole::Staff,
@@ -68,6 +82,7 @@ class EmployeeController extends Controller
             'name' => $request->string('name')->toString(),
             'email' => $request->validated('email'),
             'phone' => $request->string('phone')->toString(),
+            'shop_id' => $request->validated('shop_id'),
             'department_id' => $request->validated('department_id'),
             'is_active' => $request->boolean('is_active'),
         ]);
@@ -84,12 +99,19 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @return array{departments: array<int, mixed>, weekdays: array<int, string>}
+     * @return array{shops: list<array{id: int, name: string}>, defaultShopId: ?int, departments: array<int, mixed>, weekdays: array<int, string>}
      */
     private function formOptions(): array
     {
         return [
-            'departments' => DepartmentResource::collection(Department::query()->orderBy('name')->get())->resolve(),
+            'shops' => $this->shops->accessibleShops()
+                ->map(fn (Shop $shop): array => ['id' => $shop->id, 'name' => $shop->name])
+                ->values()
+                ->all(),
+            'defaultShopId' => $this->shops->defaultShopId(),
+            'departments' => DepartmentResource::collection(
+                Department::query()->whereIn('shop_id', $this->shops->accessibleShops()->modelKeys())->orderBy('name')->get(),
+            )->resolve(),
             'weekdays' => WorkSchedule::weekdayLabels(),
         ];
     }

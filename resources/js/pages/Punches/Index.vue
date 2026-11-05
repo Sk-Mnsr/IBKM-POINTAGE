@@ -261,6 +261,14 @@ const fieldClasses = 'h-10 w-full rounded-xl border border-line bg-white px-3 te
                                 <Icon name="wifi-off" class="size-3" />
                                 Hors ligne
                             </span>
+                            <span
+                                v-if="punch.viaKioskLogin"
+                                class="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700"
+                                title="Pointé sur la tablette avec le téléphone et le mot de passe, sans scanner le QR code"
+                            >
+                                <Icon name="login" class="size-3" />
+                                Identifiants
+                            </span>
                             <span v-if="punch.isManual" class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800" title="Ajouté par le gérant">
                                 Saisie gérant
                             </span>

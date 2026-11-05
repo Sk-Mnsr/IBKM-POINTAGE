@@ -35,6 +35,7 @@ class PunchResource extends JsonResource
             'kiosk' => $this->whenLoaded('kiosk', fn (): string => $this->kiosk->name ?? 'Saisie du gérant'),
             'isOffline' => $this->is_offline,
             'isManual' => $this->is_manual,
+            'viaKioskLogin' => $this->via_kiosk_login,
             'isCorrected' => $this->whenCounted('corrections', fn (int $count): bool => $count > 0),
             'syncedAt' => $this->synced_at?->format('d/m à H:i'),
             'lateMinutes' => $this->when(

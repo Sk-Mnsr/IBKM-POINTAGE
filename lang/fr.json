@@ -1,0 +1,15 @@
+{
+    "Unauthorized": "Non autorisé",
+    "Forbidden": "Accès refusé",
+    "Not Found": "Page introuvable",
+    "Page Expired": "Page expirée",
+    "Too Many Requests": "Trop de tentatives",
+    "Server Error": "Erreur du serveur",
+    "Service Unavailable": "Service indisponible",
+    "Payment Required": "Paiement requis",
+    "This action is unauthorized.": "Vous n’avez pas l’autorisation d’effectuer cette action.",
+    "Too Many Attempts.": "Trop de tentatives. Patientez un instant avant de réessayer.",
+    "The given data was invalid.": "Les données saisies ne sont pas valides.",
+    "(and :count more error)": "(et :count autre erreur)",
+    "(and :count more errors)": "(et :count autres erreurs)"
+}

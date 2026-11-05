@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Enums\PunchType;
-use App\Enums\UserRole;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +11,7 @@ class StorePunchCorrectionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === UserRole::Admin;
+        return $this->user()?->isAdmin() === true;
     }
 
     /**

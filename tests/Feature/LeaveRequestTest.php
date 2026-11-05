@@ -45,7 +45,7 @@ class LeaveRequestTest extends TestCase
 
     public function test_admin_approves_a_pending_request(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $leave = LeaveRequest::factory()->create();
 
         $this->actingAs($admin)
@@ -62,7 +62,7 @@ class LeaveRequestTest extends TestCase
 
     public function test_review_rejects_a_pending_status(): void
     {
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->patch(route('leaves.update', LeaveRequest::factory()->create()), ['status' => 'pending'])
             ->assertSessionHasErrors(['status' => 'Décision invalide.']);
     }
@@ -71,7 +71,7 @@ class LeaveRequestTest extends TestCase
     {
         $leave = LeaveRequest::factory()->approved()->create();
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->patch(route('leaves.update', $leave), ['status' => 'rejected'])
             ->assertSessionHasErrors(['leave' => 'Cette demande a déjà été traitée.']);
 
@@ -90,7 +90,7 @@ class LeaveRequestTest extends TestCase
             'ends_on' => today()->subDays(8)->toDateString(),
         ]);
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('leaves.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
@@ -107,7 +107,7 @@ class LeaveRequestTest extends TestCase
     {
         $this->actingAs(User::factory()->create())
             ->get(route('leaves.index'))
-            ->assertForbidden();
+            ->assertRedirect(route('punch.create'));
     }
 
     public function test_staff_cannot_cancel_a_colleague_request(): void

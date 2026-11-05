@@ -22,6 +22,8 @@ class EmployeeResource extends JsonResource
             'initials' => $this->initials(),
             'phone' => $this->phone,
             'email' => $this->email,
+            'shopId' => $this->shop_id,
+            'shop' => $this->whenLoaded('shop', fn (): ?string => $this->shop?->name),
             'departmentId' => $this->department_id,
             'department' => $this->whenLoaded('department', fn (): ?string => $this->department?->name),
             'isActive' => $this->is_active,

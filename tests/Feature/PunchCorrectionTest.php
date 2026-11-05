@@ -28,7 +28,7 @@ class PunchCorrectionTest extends TestCase
         parent::setUp();
 
         $this->travelTo(CarbonImmutable::parse('2026-10-14 20:00'));
-        $this->admin = User::factory()->admin()->create();
+        $this->admin = User::factory()->superAdmin()->create();
         $this->employee = User::factory()->create(['name' => 'Awa Ndiaye']);
 
         WorkSchedule::factory()->create([

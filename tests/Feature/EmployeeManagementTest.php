@@ -20,7 +20,7 @@ class EmployeeManagementTest extends TestCase
 
     public function test_admin_can_sign_in_and_open_the_dashboard(): void
     {
-        User::factory()->admin()->create([
+        User::factory()->superAdmin()->create([
             'email' => 'gerant@ibkn.sn',
         ]);
 
@@ -33,7 +33,7 @@ class EmployeeManagementTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('auth.user.role', 'admin'));
+                ->where('auth.user.role', 'super_admin'));
     }
 
     public function test_employee_list_includes_schedules_and_departments_for_filtering(): void
@@ -42,7 +42,7 @@ class EmployeeManagementTest extends TestCase
         $employee = User::factory()->create(['department_id' => $department->id]);
         $employee->syncWorkSchedules([1 => ['starts_at' => '09:00', 'ends_at' => '18:00']]);
 
-        $this->actingAs(User::factory()->admin()->create())
+        $this->actingAs(User::factory()->superAdmin()->create())
             ->get(route('employees.index'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
@@ -52,16 +52,20 @@ class EmployeeManagementTest extends TestCase
                 ->where('departments.0.name', 'Coiffure'));
     }
 
-    public function test_staff_cannot_open_the_employee_list(): void
+    public function test_staff_opening_the_employee_list_is_sent_back_to_their_space(): void
     {
         $this->actingAs(User::factory()->create())
             ->get(route('employees.index'))
+            ->assertRedirect(route('punch.create'));
+
+        $this->actingAs(User::factory()->create())
+            ->getJson(route('employees.index'))
             ->assertForbidden();
     }
 
     public function test_admin_can_create_an_employee_with_a_schedule(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $department = Department::factory()->create();
 
         $this->actingAs($admin)->post(route('employees.store'), [
@@ -87,7 +91,7 @@ class EmployeeManagementTest extends TestCase
 
     public function test_edit_form_keeps_each_schedule_on_its_own_weekday(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $employee = User::factory()->create();
         $employee->syncWorkSchedules([
             1 => ['starts_at' => '09:00', 'ends_at' => '18:00'],
@@ -107,7 +111,7 @@ class EmployeeManagementTest extends TestCase
 
     public function test_employee_form_requires_a_name(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
 
         $this->actingAs($admin)->post(route('employees.store'), [
             'name' => '',
@@ -121,7 +125,7 @@ class EmployeeManagementTest extends TestCase
 
     public function test_schedule_end_must_be_after_the_start(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
 
         $this->actingAs($admin)->post(route('employees.store'), [
             'name' => 'Awa Ndiaye',
@@ -138,7 +142,7 @@ class EmployeeManagementTest extends TestCase
 
     public function test_department_with_employees_cannot_be_deleted(): void
     {
-        $admin = User::factory()->admin()->create();
+        $admin = User::factory()->superAdmin()->create();
         $department = Department::factory()->create();
         User::factory()->create(['department_id' => $department->id]);
 

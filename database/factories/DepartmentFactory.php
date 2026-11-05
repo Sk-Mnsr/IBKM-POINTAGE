@@ -18,6 +18,7 @@ class DepartmentFactory extends Factory
     public function definition(): array
     {
         return [
+            'shop_id' => fn () => ShopFactory::firstOrNew(),
             'name' => fake()->unique()->words(2, true),
         ];
     }
