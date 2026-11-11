@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\PunchType;
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\Punch;
 use App\Models\WorkSchedule;
@@ -41,10 +42,11 @@ class DailyAttendance
         public Collection $punches,
         public ?LeaveRequest $leave,
         CarbonImmutable $now,
+        public ?Holiday $holiday = null,
     ) {
         $this->punches = $punches->sortBy('punched_at')->values();
 
-        if ($schedule !== null) {
+        if ($schedule !== null && $holiday === null) {
             $this->scheduledStart = $date->setTimeFromTimeString($schedule->formattedStart());
             $this->scheduledEnd = $date->setTimeFromTimeString($schedule->formattedEnd());
             $this->scheduledMinutes = (int) $this->scheduledStart->diffInMinutes($this->scheduledEnd);
@@ -53,7 +55,7 @@ class DailyAttendance
         $isToday = $date->isSameDay($now);
         $openSegment = $this->measure($isToday ? $now : null);
 
-        if ($this->firstArrival !== null && $schedule !== null) {
+        if ($this->firstArrival !== null && $this->isScheduled()) {
             $this->lateMinutes = $schedule->lateMinutesFor($this->firstArrival);
         }
 
@@ -66,9 +68,12 @@ class DailyAttendance
         return $this->lateMinutes > 0;
     }
 
+    /**
+     * Expected at work: a working day of their schedule that is not a public holiday.
+     */
     public function isScheduled(): bool
     {
-        return $this->schedule !== null;
+        return $this->schedule !== null && $this->holiday === null;
     }
 
     public function lastPunch(): ?Punch
@@ -83,6 +88,10 @@ class DailyAttendance
 
     public function scheduleLabel(): string
     {
+        if ($this->holiday !== null) {
+            return 'Férié · '.$this->holiday->name;
+        }
+
         if ($this->schedule === null) {
             return 'Repos';
         }
@@ -114,6 +123,7 @@ class DailyAttendance
             'overtimeMinutes' => $this->overtimeMinutes,
             'status' => $this->status->toArray(),
             'leave' => $this->leave === null ? null : ['type' => $this->leave->type->label()],
+            'holiday' => $this->holiday?->name,
             'punches' => $this->punches
                 ->map(fn (Punch $punch): array => [
                     'id' => $punch->id,
@@ -203,6 +213,10 @@ class DailyAttendance
 
         if ($this->schedule === null) {
             return AttendanceStatus::DayOff;
+        }
+
+        if ($this->holiday !== null) {
+            return AttendanceStatus::Holiday;
         }
 
         if ($this->leave !== null) {

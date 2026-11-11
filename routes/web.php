@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\KioskDisplayController;
 use App\Http\Controllers\KioskPunchController;
 use App\Http\Controllers\LeaveRequestController;
@@ -16,7 +17,9 @@ use App\Http\Controllers\PunchCorrectionController;
 use App\Http\Controllers\PunchHistoryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ShopKioskController;
 use App\Http\Controllers\StaffHistoryController;
 use App\Http\Controllers\StaffScheduleController;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +86,17 @@ Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
             ->except(['show', 'destroy'])
             ->parameters(['gerants' => 'manager'])
             ->names('managers');
+
+        Route::post('/boutiques/{shop}/bornes', [ShopKioskController::class, 'store'])->name('shops.kiosks.store');
+        Route::put('/boutiques/{shop}/bornes/{kiosk}', [ShopKioskController::class, 'update'])
+            ->scopeBindings()
+            ->name('shops.kiosks.update');
+
+        Route::get('/reglages', [SettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/reglages', [SettingsController::class, 'update'])->name('settings.update');
+        Route::post('/reglages/jours-feries', [HolidayController::class, 'store'])->name('holidays.store');
+        Route::post('/reglages/jours-feries/fetes-fixes', [HolidayController::class, 'storeSuggestions'])->name('holidays.suggestions');
+        Route::delete('/reglages/jours-feries/{holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
     });
 });
 

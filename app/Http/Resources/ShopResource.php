@@ -43,8 +43,10 @@ class ShopResource extends JsonResource
                 ->all()),
             'kiosks' => $this->whenLoaded('kiosks', fn (): array => $this->kiosks
                 ->map(fn ($kiosk): array => [
+                    'id' => $kiosk->public_id,
                     'name' => $kiosk->name,
                     'url' => route('kiosk.show', $kiosk),
+                    'isActive' => $kiosk->is_active,
                 ])
                 ->values()
                 ->all()),

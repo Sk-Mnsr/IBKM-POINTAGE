@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
+import ShopKiosks from '@/components/ShopKiosks.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
 import type { Shop } from '@/types';
 
@@ -135,25 +136,7 @@ const inputClasses =
 
             <div class="grid content-start gap-6">
                 <template v-if="shop">
-                    <section class="rounded-3xl border border-line bg-paper p-6">
-                        <div class="flex items-center gap-3">
-                            <span class="grid size-9 place-items-center rounded-xl bg-ink text-cream"><Icon name="qr" class="size-4" /></span>
-                            <div>
-                                <h2 class="font-semibold">Bornes de pointage</h2>
-                                <p class="text-xs text-ink/50">À ouvrir sur la tablette de l’accueil, puis à appairer.</p>
-                            </div>
-                        </div>
-                        <ul class="mt-4 grid gap-2">
-                            <li v-for="kiosk in shop.kiosks" :key="kiosk.url" class="flex items-center justify-between gap-3 rounded-2xl bg-cream/70 px-4 py-3">
-                                <span class="text-sm font-medium">Borne {{ kiosk.name }}</span>
-                                <a :href="kiosk.url" target="_blank" class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-dark">
-                                    <Icon name="maximize" class="size-4" />
-                                    Ouvrir
-                                </a>
-                            </li>
-                            <li v-if="!shop.kiosks?.length" class="rounded-2xl bg-cream/70 px-4 py-3 text-sm text-ink/55">Aucune borne active.</li>
-                        </ul>
-                    </section>
+                    <ShopKiosks :shop-id="shop.id" :kiosks="shop.kiosks ?? []" />
 
                     <section class="rounded-3xl border border-line bg-paper p-6">
                         <div class="flex items-center justify-between gap-3">

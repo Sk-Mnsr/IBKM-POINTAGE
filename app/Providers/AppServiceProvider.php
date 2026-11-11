@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Department;
 use App\Models\LeaveRequest;
 use App\Models\Punch;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         URL::forceHttps($this->app->isProduction());
+        Setting::applyToConfig();
 
         $this->bindWithinManagedShops();
     }

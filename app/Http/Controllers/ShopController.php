@@ -55,7 +55,7 @@ class ShopController extends Controller
     {
         $shop->load([
             'managers' => fn ($managers) => $managers->orderBy('name'),
-            'kiosks' => fn ($kiosks) => $kiosks->where('is_active', true)->orderBy('name'),
+            'kiosks' => fn ($kiosks) => $kiosks->orderByDesc('is_active')->orderBy('name'),
             'departments' => fn ($departments) => $departments
                 ->withCount(['users' => fn ($users) => $users->where('is_active', true)])
                 ->orderBy('name'),

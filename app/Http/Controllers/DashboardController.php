@@ -29,6 +29,7 @@ class DashboardController extends Controller
         AttendanceStatus::Expected,
         AttendanceStatus::Left,
         AttendanceStatus::OnLeave,
+        AttendanceStatus::Holiday,
         AttendanceStatus::DayOff,
     ];
 

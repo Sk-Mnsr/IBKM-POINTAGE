@@ -18,4 +18,28 @@
     html {
         color-scheme: light;
     }
+
+    body {
+        overflow-x: clip;
+    }
+
+    /* A wide table must scroll inside its card instead of widening the whole grid on phones. */
+    .grid > * {
+        min-width: 0;
+    }
+
+    /* Otherwise absolutely positioned children (sr-only labels…) escape the scroll box and widen the page. */
+    .overflow-x-auto,
+    .overflow-auto {
+        position: relative;
+    }
+}
+
+/* Safari on iPhone zooms in on fields under 16px and stays zoomed; unlayered so it wins over text-sm. */
+@media (pointer: coarse) {
+    input:not([type='checkbox'], [type='radio'], [type='range']),
+    select,
+    textarea {
+        font-size: max(16px, 1em);
+    }
 }

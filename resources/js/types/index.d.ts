@@ -49,7 +49,7 @@ export interface Shop {
     staffCount?: number;
     kioskCount?: number;
     managers?: { id: number; name: string; initials: string; isActive: boolean }[];
-    kiosks?: { name: string; url: string }[];
+    kiosks?: { id: string; name: string; url: string; isActive: boolean }[];
     departments?: { id: number; name: string; staffCount: number }[];
 }
 
@@ -136,6 +136,7 @@ export interface DailyAttendance {
     overtimeMinutes: number;
     status: StatusValue;
     leave: { type: string } | null;
+    holiday: string | null;
     punches: DayPunch[];
 }
 
@@ -143,6 +144,7 @@ export interface AttendanceSummary {
     workedDays: number;
     absentDays: number;
     leaveDays: number;
+    holidayDays: number;
     lateCount: number;
     lateMinutes: number;
     workedMinutes: number;

@@ -6,7 +6,7 @@
 @section('title', 'Fiche de présence · '.$employee->name)
 
 @section('subtitle')
-    {{ $month->label() }} · {{ $employee->department->name ?? 'Sans département' }} · {{ $employee->phone }}
+    {{ $month->label() }} · @if ($employee->shop){{ $employee->shop->name }} · @endif{{ $employee->department->name ?? 'Sans département' }} · {{ $employee->phone }}
 @endsection
 
 @section('content')

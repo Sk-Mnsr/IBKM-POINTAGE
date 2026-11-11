@@ -29,7 +29,7 @@ const navigation = computed(() =>
             <div class="flex items-center gap-3">
                 <div class="text-right leading-tight">
                     <p class="text-sm font-semibold">{{ page.props.auth.user?.name }}</p>
-                    <p class="text-xs text-ink/55">{{ page.props.auth.user?.department ?? 'Personnel' }}</p>
+                    <p class="text-xs text-ink/55">{{ [page.props.auth.user?.department ?? 'Personnel', page.props.auth.user?.shop].filter(Boolean).join(' · ') }}</p>
                 </div>
                 <Link :href="route('password.edit')" class="grid size-10 place-items-center rounded-full border border-line bg-paper text-ink/70" aria-label="Changer mon mot de passe">
                     <Icon name="shield" />

@@ -37,7 +37,7 @@ const rowClasses = (day: DailyAttendance): string => {
         return 'bg-amber-50/70';
     }
 
-    return ['day_off', 'upcoming'].includes(day.status.value) ? 'text-ink/45' : '';
+    return ['day_off', 'holiday', 'upcoming'].includes(day.status.value) ? 'text-ink/45' : '';
 };
 </script>
 

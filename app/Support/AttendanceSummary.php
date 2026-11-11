@@ -13,6 +13,8 @@ class AttendanceSummary
 
     public int $leaveDays = 0;
 
+    public int $holidayDays = 0;
+
     public int $lateCount = 0;
 
     public int $lateMinutes = 0;
@@ -73,6 +75,10 @@ class AttendanceSummary
 
         if ($day->status === AttendanceStatus::OnLeave) {
             $this->leaveDays++;
+        }
+
+        if ($day->holiday !== null && $day->schedule !== null) {
+            $this->holidayDays++;
         }
 
         if ($day->status === AttendanceStatus::Incomplete) {

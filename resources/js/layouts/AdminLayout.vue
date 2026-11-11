@@ -27,6 +27,7 @@ const navigation = computed(() =>
             ? [
                   { route: 'shops.index', label: 'Boutiques', icon: 'store', badge: 0 },
                   { route: 'managers.index', label: 'Gérants', icon: 'user-cog', badge: 0 },
+                  { route: 'settings.edit', label: 'Réglages', icon: 'shield', badge: 0 },
               ]
             : []),
     ].map((item) => {

@@ -13,6 +13,7 @@ enum AttendanceStatus: string
     case Absent = 'absent';
     case OnLeave = 'on_leave';
     case DayOff = 'day_off';
+    case Holiday = 'holiday';
     case Upcoming = 'upcoming';
 
     public function label(): string
@@ -27,6 +28,7 @@ enum AttendanceStatus: string
             self::Absent => 'Absent',
             self::OnLeave => 'En congé',
             self::DayOff => 'Repos',
+            self::Holiday => 'Férié',
             self::Upcoming => 'À venir',
         };
     }
@@ -37,7 +39,7 @@ enum AttendanceStatus: string
             self::Present, self::Worked => 'emerald',
             self::OnBreak, self::Incomplete => 'amber',
             self::Absent => 'rose',
-            self::OnLeave => 'sky',
+            self::OnLeave, self::Holiday => 'sky',
             self::Left => 'stone',
             self::Expected, self::DayOff, self::Upcoming => 'neutral',
         };

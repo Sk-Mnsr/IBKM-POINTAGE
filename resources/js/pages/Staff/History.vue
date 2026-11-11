@@ -31,7 +31,7 @@ defineProps<{
 
         <section class="overflow-hidden rounded-3xl border border-line bg-paper">
             <ul class="divide-y divide-line">
-                <li v-for="day in days" :key="day.date" class="flex items-center gap-4 px-5 py-3.5" :class="{ 'opacity-55': day.status.value === 'day_off' }">
+                <li v-for="day in days" :key="day.date" class="flex items-center gap-4 px-5 py-3.5" :class="{ 'opacity-55': ['day_off', 'holiday'].includes(day.status.value) }">
                     <div class="w-12 text-center">
                         <p class="text-xs text-ink/55 uppercase">{{ day.weekdayShort }}</p>
                         <p class="text-lg font-semibold tabular-nums">{{ day.dayNumber }}</p>

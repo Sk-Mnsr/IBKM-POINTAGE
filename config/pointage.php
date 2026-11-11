@@ -50,6 +50,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Sauvegardes
+    |--------------------------------------------------------------------------
+    |
+    | La commande pointage:sauvegarder copie la base chaque nuit dans
+    | storage/app/backups et supprime les copies plus anciennes que ce délai.
+    |
+    */
+
+    'backup_retention_days' => (int) env('POINTAGE_BACKUP_RETENTION_DAYS', 30),
+
+    'backup_path' => env('POINTAGE_BACKUP_PATH', storage_path('app/backups')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Premier compte gérant
     |--------------------------------------------------------------------------
     |
