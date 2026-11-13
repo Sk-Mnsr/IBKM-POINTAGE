@@ -63,14 +63,17 @@ class KioskPunchController extends Controller
             throw ValidationException::withMessages(['phone' => 'Ce compte n’appartient pas à cette boutique.']);
         }
 
+        $day = AttendanceDay::for($employee);
+
         return response()->json([
             'ticket' => $this->issueTicket($employee, $kiosk),
             'expiresIn' => self::TICKET_SECONDS,
             'givenName' => $employee->givenName(),
             'actions' => array_map(
                 fn (PunchType $type): array => $type->toArray(),
-                AttendanceDay::for($employee)->allowedTypes(),
+                $day->allowedTypes(),
             ),
+            'closedReason' => $day->closedReason,
             'today' => Punch::query()
                 ->where('user_id', $employee->id)
                 ->whereDate('punched_at', today())

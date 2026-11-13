@@ -25,12 +25,15 @@ class PunchController extends Controller
         $user = $request->user();
         $today = CarbonImmutable::today();
 
+        $day = AttendanceDay::for($user);
+
         return Inertia::render('Staff/Punch', [
             'todayLabel' => ucfirst($today->translatedFormat('l j F')),
             'actions' => array_map(
                 fn (PunchType $type): array => $type->toArray(),
-                AttendanceDay::for($user)->allowedTypes(),
+                $day->allowedTypes(),
             ),
+            'closedReason' => $day->closedReason,
             'attendance' => $calculator->forUser($user, $today, $today)->first()->toArray(),
             'scannedToken' => $request->string('code')->limit(255, '')->toString(),
             'punchTypes' => array_map(fn (PunchType $type): array => $type->toArray(), PunchType::cases()),

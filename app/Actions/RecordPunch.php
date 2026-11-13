@@ -73,9 +73,13 @@ class RecordPunch
         return DB::transaction(function () use ($user, $type, $resolved, $punchedAt, $attributes): Punch {
             User::query()->whereKey($user->id)->lockForUpdate()->first();
 
-            if (! in_array($type, AttendanceDay::at($user, $punchedAt)->allowedTypes(), true)) {
+            $day = AttendanceDay::at($user, $punchedAt);
+
+            if (! in_array($type, $day->allowedTypes(), true)) {
                 throw ValidationException::withMessages([
-                    'type' => 'Cette action n\'est pas disponible pour le moment.',
+                    'type' => $type === PunchType::Arrival && $day->closedReason !== null
+                        ? $day->closedReason
+                        : 'Cette action n\'est pas disponible pour le moment.',
                 ]);
             }
 

@@ -1,0 +1,12 @@
+[
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "sn.kingmaelick.pointage",
+            "sha256_cert_fingerprints": [
+                "E5:32:9D:A2:26:3D:85:42:3C:C1:72:4F:C2:6B:72:D4:0E:51:EA:93:AD:E3:95:93:FD:0B:1E:64:86:F3:AB:5B"
+            ]
+        }
+    }
+]

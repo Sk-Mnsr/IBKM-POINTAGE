@@ -12,6 +12,7 @@ import type { DailyAttendance, PunchTypeName, PunchTypeValue } from '@/types';
 const props = defineProps<{
     todayLabel: string;
     actions: PunchTypeValue[];
+    closedReason: string | null;
     attendance: DailyAttendance;
     scannedToken: string;
     punchTypes: PunchTypeValue[];
@@ -62,6 +63,8 @@ const availableActions = computed<PunchTypeValue[]>(() => {
         .map((value) => props.punchTypes.find((type) => type.value === value))
         .filter((type): type is PunchTypeValue => type !== undefined);
 });
+
+const isDayClosed = computed(() => props.closedReason !== null && availableActions.value.length === 0);
 
 const confirmations: Record<PunchTypeName, (name: string) => string> = {
     arrival: (name) => `Bonjour ${name}`,
@@ -369,7 +372,18 @@ onBeforeUnmount(() => {
             </p>
         </section>
 
-        <section class="grid gap-4 rounded-3xl border border-line bg-paper p-5">
+        <section v-if="isDayClosed" class="flex items-start gap-4 rounded-3xl border border-sky-200 bg-sky-50 p-5 text-sky-950">
+            <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-800">
+                <Icon name="calendar" />
+            </span>
+            <div>
+                <p class="font-semibold">Pas de pointage aujourd’hui</p>
+                <p class="mt-1 text-sm text-sky-900/80">{{ closedReason }}</p>
+                <p class="mt-2 text-xs text-sky-900/60">Si vous travaillez exceptionnellement, demandez au gérant d’enregistrer votre arrivée.</p>
+            </div>
+        </section>
+
+        <section v-else class="grid gap-4 rounded-3xl border border-line bg-paper p-5">
             <div class="flex items-center gap-3">
                 <span class="grid size-10 place-items-center rounded-xl bg-brand/15 text-brand-dark">
                     <Icon name="qr" />

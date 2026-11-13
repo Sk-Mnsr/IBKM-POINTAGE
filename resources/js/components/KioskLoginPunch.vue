@@ -19,6 +19,7 @@ const processing = ref(false);
 const ticket = ref<string | null>(null);
 const givenName = ref('');
 const actions = ref<PunchTypeValue[]>([]);
+const closedReason = ref<string | null>(null);
 const today = ref<{ label: string; time: string }[]>([]);
 const phoneInput = ref<HTMLInputElement | null>(null);
 let inactivityTimer: number | undefined;
@@ -43,6 +44,7 @@ const reset = (): void => {
     ticket.value = null;
     givenName.value = '';
     actions.value = [];
+    closedReason.value = null;
     today.value = [];
 };
 
@@ -118,10 +120,17 @@ const identify = async (): Promise<void> => {
             return;
         }
 
-        const data: { ticket: string; givenName: string; actions: PunchTypeValue[]; today: { label: string; time: string }[] } = await response.json();
+        const data: {
+            ticket: string;
+            givenName: string;
+            actions: PunchTypeValue[];
+            closedReason: string | null;
+            today: { label: string; time: string }[];
+        } = await response.json();
         ticket.value = data.ticket;
         givenName.value = data.givenName;
         actions.value = data.actions;
+        closedReason.value = data.closedReason;
         today.value = data.today;
         step.value = 'choose';
     } catch {
@@ -265,7 +274,9 @@ onBeforeUnmount(() => window.clearTimeout(inactivityTimer));
                                 <Icon :name="actionTheme[action.value].icon" class="size-6" />
                                 {{ action.buttonLabel }}
                             </button>
-                            <p v-if="actions.length === 0" class="rounded-2xl bg-white/5 px-4 py-3 text-cream/60">Aucune action disponible pour le moment.</p>
+                            <p v-if="actions.length === 0" class="rounded-2xl bg-sky-400/10 px-4 py-3 text-sky-100">
+                                {{ closedReason ?? 'Aucune action disponible pour le moment.' }}
+                            </p>
                         </div>
 
                         <p v-if="error" class="flex items-start gap-2 rounded-2xl bg-rose-500/15 px-4 py-3 text-sm text-rose-100" role="alert">
