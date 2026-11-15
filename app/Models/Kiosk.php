@@ -86,6 +86,14 @@ class Kiosk extends Model
     }
 
     /**
+     * @return HasMany<CustomerReview, $this>
+     */
+    public function customerReviews(): HasMany
+    {
+        return $this->hasMany(CustomerReview::class);
+    }
+
+    /**
      * @return BelongsTo<Shop, $this>
      */
     public function shop(): BelongsTo

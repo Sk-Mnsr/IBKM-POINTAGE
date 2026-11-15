@@ -28,6 +28,7 @@ const props = defineProps<{
     pairUrl: string;
     identifyUrl: string;
     kioskPunchUrl: string;
+    reviewUrl: string;
     scanUrl: string;
     lastPunchId: number;
 }>();
@@ -456,7 +457,14 @@ onBeforeUnmount(() => {
                         Code unique et sécurisé · {{ page.props.app.instituteName }}
                     </span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                <a
+                    :href="reviewUrl"
+                    class="inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand/15 px-4 py-2 text-brand transition hover:bg-brand/25"
+                >
+                    <Icon name="star" class="size-4" />
+                    Avis client
+                </a>
                 <button
                     v-if="isPaired && page.props.auth.user && page.props.auth.user.role !== 'staff'"
                     type="button"

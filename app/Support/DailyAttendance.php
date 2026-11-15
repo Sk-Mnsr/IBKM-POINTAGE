@@ -227,7 +227,12 @@ class DailyAttendance
             return AttendanceStatus::Upcoming;
         }
 
-        if ($isToday && $now->lessThanOrEqualTo($this->scheduledStart->addMinutes((int) config('pointage.late_tolerance_minutes')))) {
+        $grace = max(
+            (int) config('pointage.late_tolerance_minutes'),
+            (int) config('pointage.absence_grace_minutes'),
+        );
+
+        if ($isToday && $now->lessThanOrEqualTo($this->scheduledStart->addMinutes($grace))) {
             return AttendanceStatus::Expected;
         }
 

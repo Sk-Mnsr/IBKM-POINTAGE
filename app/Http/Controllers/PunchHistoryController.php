@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PunchType;
+use App\Http\Requests\ImportPunchesRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Http\Resources\PunchResource;
 use App\Models\Department;
 use App\Models\Punch;
 use App\Models\User;
+use App\Support\PunchSpreadsheetImporter;
 use App\Support\ShopContext;
 use App\Support\SpreadsheetExporter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -85,6 +88,40 @@ class PunchHistoryController extends Controller
             headings: ['Date', 'Heure', 'Employé', 'Département', 'Action', 'Borne'],
             rows: $rows,
         );
+    }
+
+    public function template(SpreadsheetExporter $exporter): BinaryFileResponse
+    {
+        return $exporter->download(
+            fileName: 'modele-import-pointages.xlsx',
+            title: 'Modèle d’import des pointages',
+            subtitle: 'Remplissez les lignes sous l’en-tête, puis importez ce fichier',
+            headings: ['Date', 'Heure', 'Employé', 'Département', 'Action', 'Borne'],
+            rows: [
+                ['15/11/2026', '09:05:00', 'Awa Diop', 'Coiffeuses', 'Arrivée', 'Accueil'],
+                ['15/11/2026', '18:30:00', 'Awa Diop', 'Coiffeuses', 'Départ', 'Accueil'],
+            ],
+        );
+    }
+
+    public function import(
+        ImportPunchesRequest $request,
+        PunchSpreadsheetImporter $importer,
+        ShopContext $shops,
+    ): RedirectResponse {
+        $result = $importer->import($request->file('fichier'), $shops->scopeIds());
+
+        $message = "{$result['imported']} pointage(s) importé(s)";
+
+        if ($result['skipped'] > 0) {
+            $message .= ", {$result['skipped']} ignoré(s)";
+        }
+
+        if ($result['errors'] !== []) {
+            $message .= '. '.implode(' ', array_slice($result['errors'], 0, 3));
+        }
+
+        return back()->with('status', $message.'.');
     }
 
     /**

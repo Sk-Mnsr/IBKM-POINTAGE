@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, reactive, ref } from 'vue';
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
 import Pagination from '@/components/Pagination.vue';
-import { punchCircleClasses, punchIcon } from '@/lib/format';
+import { formatDuration, punchCircleClasses, punchIcon } from '@/lib/format';
 import type { Department, Paginated, Punch, PunchTypeValue } from '@/types';
 
 interface Filters {
@@ -27,10 +27,23 @@ const props = defineProps<{
 }>();
 
 const form = reactive<Filters>({ ...props.filters });
+const importOpen = ref(false);
+const importForm = useForm<{ fichier: File | null }>({ fichier: null });
 
 const activeFilters = computed(() =>
     Object.fromEntries(Object.entries(form).filter(([, value]) => value !== null && value !== '')),
 );
+
+const submitImport = (): void => {
+    importForm.post(route('punches.import'), {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            importOpen.value = false;
+            importForm.reset();
+        },
+    });
+};
 
 const apply = (): void => {
     router.get(route('punches.index'), activeFilters.value, { preserveState: true, preserveScroll: true });
@@ -131,13 +144,23 @@ const fieldClasses = 'h-10 w-full rounded-xl border border-line bg-white px-3 te
                 <h1 class="mt-1 text-3xl font-semibold tracking-tight">Pointages du personnel</h1>
                 <p class="mt-1 text-sm text-ink/55">Période {{ periodLabel }}</p>
             </div>
-            <a
-                :href="route('punches.export', activeFilters)"
-                class="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-cream hover:bg-ink/90"
-            >
-                <Icon name="sheet" class="size-4" />
-                Exporter en Excel
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    class="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-paper px-5 text-sm font-medium hover:border-ink/30"
+                    @click="importOpen = true"
+                >
+                    <Icon name="sheet" class="size-4" />
+                    Importer
+                </button>
+                <a
+                    :href="route('punches.export', activeFilters)"
+                    class="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-cream hover:bg-ink/90"
+                >
+                    <Icon name="sheet" class="size-4" />
+                    Exporter en Excel
+                </a>
+            </div>
         </header>
 
         <section class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -251,7 +274,7 @@ const fieldClasses = 'h-10 w-full rounded-xl border border-line bg-white px-3 te
                                 {{ punch.type.label }}
                             </span>
                             <span v-if="punch.lateMinutes" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                                +{{ punch.lateMinutes }} min
+                                +{{ formatDuration(punch.lateMinutes) }}
                             </span>
                             <span
                                 v-if="punch.isOffline"
@@ -298,5 +321,59 @@ const fieldClasses = 'h-10 w-full rounded-xl border border-line bg-white px-3 te
             <p class="text-sm text-ink/50">{{ punches.from }} – {{ punches.to }} sur {{ punches.total }} pointages</p>
             <Pagination :links="punches.links" />
         </div>
+
+        <Teleport to="body">
+            <div
+                v-if="importOpen"
+                class="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4 backdrop-blur-sm"
+                @click.self="importOpen = false"
+            >
+                <div role="dialog" aria-modal="true" aria-labelledby="import-title" class="w-full max-w-md rounded-3xl border border-line bg-paper p-6 text-ink shadow-2xl">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 id="import-title" class="text-lg font-semibold tracking-tight">Importer des pointages</h2>
+                            <p class="mt-1 text-sm text-ink/55">
+                                Fichier Excel au format de l’export (Date, Heure, Employé, Action, Borne).
+                                Les employés doivent déjà exister.
+                            </p>
+                        </div>
+                        <button type="button" class="grid size-9 place-items-center rounded-full hover:bg-cream" aria-label="Fermer" @click="importOpen = false">
+                            <Icon name="x" class="size-4" />
+                        </button>
+                    </div>
+
+                    <a :href="route('punches.import.template')" class="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-dark hover:underline">
+                        <Icon name="sheet" class="size-4" />
+                        Télécharger le modèle
+                    </a>
+
+                    <label class="mt-5 grid gap-2 text-sm font-medium">
+                        Fichier Excel
+                        <input
+                            type="file"
+                            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            class="block w-full text-sm text-ink/70 file:mr-3 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:font-medium file:text-cream"
+                            @change="importForm.fichier = ($event.target as HTMLInputElement).files?.[0] ?? null"
+                        >
+                        <span v-if="importForm.errors.fichier" class="text-xs font-normal text-rose-700">{{ importForm.errors.fichier }}</span>
+                    </label>
+
+                    <div class="mt-6 flex justify-end gap-2">
+                        <button type="button" class="h-11 rounded-full px-5 text-sm font-medium text-ink/60 hover:bg-cream" @click="importOpen = false">
+                            Annuler
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex h-11 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-ink disabled:opacity-50"
+                            :disabled="importForm.processing || !importForm.fichier"
+                            @click="submitImport"
+                        >
+                            <Icon name="check" class="size-4" />
+                            {{ importForm.processing ? 'Import…' : 'Importer' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>

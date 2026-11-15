@@ -106,7 +106,8 @@ const inputClasses =
                     <span class="font-normal text-ink/60">minutes</span>
                 </span>
                 <span class="text-xs font-normal text-ink/50">
-                    Une arrivée après l’heure prévue + {{ settingsForm.late_tolerance_minutes || 0 }} min compte comme un retard, pour sa durée totale.
+                    Une arrivée après l’heure prévue + {{ settingsForm.late_tolerance_minutes || 0 }} min compte comme un retard.
+                    La durée est plafonnée à 3 h pour éviter les cumuls aberrants (pointage très tardif).
                 </span>
                 <span v-if="settingsForm.errors.late_tolerance_minutes" class="text-xs font-normal text-rose-700">{{ settingsForm.errors.late_tolerance_minutes }}</span>
             </label>

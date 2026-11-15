@@ -49,6 +49,27 @@ class AttendanceCalculatorTest extends TestCase
         $this->assertTrue($day->isLate());
     }
 
+    public function test_extreme_lateness_is_capped(): void
+    {
+        $this->punch(PunchType::Arrival, '2026-10-12 18:00');
+
+        $day = $this->day('2026-10-12');
+
+        $this->assertSame(180, $day->lateMinutes);
+        $this->assertTrue($day->isLate());
+    }
+
+    public function test_today_stays_expected_during_absence_grace(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 10:00'));
+
+        $this->assertSame(AttendanceStatus::Expected, $this->day('2026-10-14')->status);
+
+        $this->travelTo(CarbonImmutable::parse('2026-10-14 11:00'));
+
+        $this->assertSame(AttendanceStatus::Absent, $this->day('2026-10-14')->status);
+    }
+
     public function test_arrival_within_tolerance_is_not_late(): void
     {
         $this->punch(PunchType::Arrival, '2026-10-12 09:04');

@@ -28,11 +28,27 @@ return [
     |--------------------------------------------------------------------------
     |
     | Une arrivée au-delà de l'heure prévue plus cette tolérance (en minutes)
-    | est comptée comme un retard, pour sa durée totale.
+    | est comptée comme un retard. La durée comptabilisée est plafonnée
+    | (late_cap_minutes) pour éviter des cumuls aberrants quand quelqu'un
+    | pointe très tard dans la journée.
     |
     */
 
     'late_tolerance_minutes' => (int) env('POINTAGE_LATE_TOLERANCE', 5),
+
+    'late_cap_minutes' => (int) env('POINTAGE_LATE_CAP', 180),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Délai avant absence (journée en cours)
+    |--------------------------------------------------------------------------
+    |
+    | Sur le tableau de bord du jour, un employé attendu reste « attendu »
+    | jusqu'à l'heure de début + ce délai, avant de passer en absent.
+    |
+    */
+
+    'absence_grace_minutes' => (int) env('POINTAGE_ABSENCE_GRACE', 90),
 
     /*
     |--------------------------------------------------------------------------

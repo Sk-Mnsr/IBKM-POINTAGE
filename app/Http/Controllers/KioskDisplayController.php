@@ -41,12 +41,13 @@ class KioskDisplayController extends Controller
             'tokenUrl' => route('kiosk.token', $kiosk),
             'tokensUrl' => route('kiosk.tokens', $kiosk),
             'activityUrl' => route('kiosk.activity', $kiosk),
-            'scanUrl' => route('punch.create'),
+            'scanUrl' => route('kiosk.scan', $kiosk),
             'lastPunchId' => (int) $kiosk->punches()->max('id'),
             'isPaired' => $this->isPaired($request, $kiosk),
             'pairUrl' => route('kiosk.pair', $kiosk),
             'identifyUrl' => route('kiosk.identify', $kiosk),
             'kioskPunchUrl' => route('kiosk.punch', $kiosk),
+            'reviewUrl' => route('kiosk.reviews.show', $kiosk),
         ]);
     }
 

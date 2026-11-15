@@ -156,7 +156,9 @@ const avatarClasses = (department: string | null | undefined): string => {
 const workedPercent = (day: DailyAttendance): number =>
     day.scheduledMinutes > 0 ? Math.min(100, Math.round((day.workedMinutes / day.scheduledMinutes) * 100)) : day.workedMinutes > 0 ? 100 : 0;
 
-const chartMax = computed(() => Math.max(1, ...props.chart.map((day) => Math.max(day.expected, day.present))));
+const chartMax = computed(() =>
+    Math.max(1, ...props.chart.map((day) => Math.max(day.expected, day.present + day.absent))),
+);
 const chartHeight = (value: number): string => `${(value / chartMax.value) * 100}%`;
 const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2), 0]);
 </script>
@@ -319,7 +321,7 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                                     <span v-if="row.day.firstArrival" class="inline-flex items-center gap-2">
                                         <span class="font-medium">{{ row.day.firstArrival }}</span>
                                         <span v-if="row.day.lateMinutes > 0" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                                            +{{ row.day.lateMinutes }} min
+                                            +{{ formatDuration(row.day.lateMinutes) }}
                                         </span>
                                     </span>
                                     <span v-else class="text-ink/30">—</span>
@@ -417,12 +419,12 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 class="font-semibold">Présence sur 7 jours</h2>
-                        <p class="text-xs text-ink/50">Présents à l’heure, en retard, et effectif attendu</p>
+                        <p class="text-xs text-ink/50">Répartition réelle : à l’heure, en retard, absents</p>
                     </div>
-                    <div class="flex items-center gap-4 text-xs text-ink/60">
+                    <div class="flex flex-wrap items-center gap-3 text-xs text-ink/60 sm:gap-4">
                         <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand" />À l’heure</span>
                         <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-amber-400" />En retard</span>
-                        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-ink/10" />Attendus</span>
+                        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-rose-300" />Absents</span>
                     </div>
                 </div>
 
@@ -439,12 +441,30 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                                 v-for="day in chart"
                                 :key="day.label"
                                 class="group relative flex h-full items-end justify-center"
-                                :title="`${day.label} : ${day.present} présent(s) sur ${day.expected}, ${day.late} retard(s), ${day.absent} absent(s)`"
+                                :title="`${day.label} : ${Math.max(0, day.present - day.late)} à l’heure, ${day.late} retard(s), ${day.absent} absent(s) · ${day.expected} attendu(s)`"
                             >
-                                <div class="absolute bottom-0 w-full max-w-10 rounded-t-xl bg-ink/[0.06]" :style="{ height: chartHeight(day.expected) }" />
-                                <div class="relative flex w-full max-w-10 flex-col-reverse overflow-hidden rounded-t-xl transition-all duration-500" :style="{ height: chartHeight(day.present) }">
-                                    <div class="bg-brand" :style="{ height: day.present > 0 ? `${((day.present - day.late) / day.present) * 100}%` : '0%' }" />
-                                    <div class="bg-amber-400" :style="{ height: day.present > 0 ? `${(day.late / day.present) * 100}%` : '0%' }" />
+                                <div
+                                    class="relative flex w-full max-w-10 flex-col-reverse overflow-hidden rounded-t-xl transition-all duration-500"
+                                    :style="{ height: chartHeight(Math.max(day.expected, day.present + day.absent, 1)) }"
+                                >
+                                    <div
+                                        class="bg-brand"
+                                        :style="{
+                                            height: `${day.expected > 0 ? (Math.max(0, day.present - day.late) / Math.max(day.expected, day.present + day.absent, 1)) * 100 : 0}%`,
+                                        }"
+                                    />
+                                    <div
+                                        class="bg-amber-400"
+                                        :style="{
+                                            height: `${day.expected > 0 ? (day.late / Math.max(day.expected, day.present + day.absent, 1)) * 100 : 0}%`,
+                                        }"
+                                    />
+                                    <div
+                                        class="bg-rose-300"
+                                        :style="{
+                                            height: `${day.expected > 0 ? (day.absent / Math.max(day.expected, day.present + day.absent, 1)) * 100 : 0}%`,
+                                        }"
+                                    />
                                 </div>
                                 <span class="pointer-events-none absolute -top-7 rounded-md bg-ink px-2 py-0.5 text-xs text-cream opacity-0 transition group-hover:opacity-100">
                                     {{ day.present }}/{{ day.expected }}

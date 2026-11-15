@@ -44,6 +44,14 @@ class SettingsTest extends TestCase
         $this->assertSame(0, $schedule->lateMinutesFor($arrival));
     }
 
+    public function test_late_minutes_are_capped(): void
+    {
+        $schedule = WorkSchedule::factory()->create(['weekday' => 1, 'starts_at' => '09:00', 'ends_at' => '18:00']);
+        $arrival = CarbonImmutable::parse('2026-11-09 17:30');
+
+        $this->assertSame(180, $schedule->lateMinutesFor($arrival));
+    }
+
     public function test_tolerance_must_stay_reasonable(): void
     {
         $this->actingAs(User::factory()->superAdmin()->create())

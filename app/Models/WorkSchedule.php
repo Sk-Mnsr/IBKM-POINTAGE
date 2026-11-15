@@ -43,14 +43,21 @@ class WorkSchedule extends Model
     }
 
     /**
-     * Minutes of lateness for an arrival on this schedule's day, counted in full once past the tolerance.
+     * Minutes of lateness for an arrival on this schedule's day, once past the tolerance.
+     * Capped so a late evening punch does not inflate monthly totals by hundreds of minutes.
      */
     public function lateMinutesFor(CarbonInterface $arrival): int
     {
         $start = CarbonImmutable::instance($arrival)->setTimeFromTimeString($this->formattedStart());
         $delay = (int) floor($start->diffInMinutes($arrival, false));
 
-        return $delay > (int) config('pointage.late_tolerance_minutes') ? $delay : 0;
+        if ($delay <= (int) config('pointage.late_tolerance_minutes')) {
+            return 0;
+        }
+
+        $cap = max(0, (int) config('pointage.late_cap_minutes'));
+
+        return min($delay, $cap);
     }
 
     /**

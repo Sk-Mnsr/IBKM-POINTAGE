@@ -5,7 +5,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import StaffLayout from '@/layouts/StaffLayout.vue';
 
-const standalonePages = ['Home', 'Auth/Login', 'Auth/ChangePassword', 'Kiosk/Show', 'Kiosk/Unpaired'];
+const standalonePages = ['Home', 'Auth/Login', 'Auth/ChangePassword', 'Kiosk/Show', 'Kiosk/Unpaired', 'Kiosk/Reviews', 'Kiosk/Scan'];
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', () => {

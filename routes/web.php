@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CurrentShopController;
+use App\Http\Controllers\CustomerReviewController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
@@ -8,6 +9,8 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\KioskDisplayController;
 use App\Http\Controllers\KioskPunchController;
+use App\Http\Controllers\KioskReviewController;
+use App\Http\Controllers\KioskScanController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LeaveReviewController;
 use App\Http\Controllers\ManagerController;
@@ -60,6 +63,10 @@ Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
 
     Route::get('/pointages', [PunchHistoryController::class, 'index'])->name('punches.index');
     Route::get('/pointages/export', [PunchHistoryController::class, 'export'])->name('punches.export');
+    Route::get('/pointages/modele-import', [PunchHistoryController::class, 'template'])->name('punches.import.template');
+    Route::post('/pointages/import', [PunchHistoryController::class, 'import'])
+        ->middleware('throttle:10,1')
+        ->name('punches.import');
 
     Route::get('/rapports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/rapports/excel', [ReportController::class, 'excel'])->name('reports.excel');
@@ -75,6 +82,8 @@ Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
 
     Route::get('/conges', [LeaveReviewController::class, 'index'])->name('leaves.index');
     Route::patch('/conges/{leaveRequest}', [LeaveReviewController::class, 'update'])->name('leaves.update');
+
+    Route::get('/avis-clients', [CustomerReviewController::class, 'index'])->name('reviews.index');
 
     Route::middleware('super_admin')->group(function () {
         Route::resource('boutiques', ShopController::class)
@@ -119,6 +128,11 @@ Route::get('/borne/{kiosk}', [KioskDisplayController::class, 'show'])->name('kio
 Route::get('/borne/{kiosk}/jeton', [KioskDisplayController::class, 'token'])->name('kiosk.token');
 Route::get('/borne/{kiosk}/jetons', [KioskDisplayController::class, 'tokens'])->name('kiosk.tokens');
 Route::get('/borne/{kiosk}/activite', [KioskDisplayController::class, 'activity'])->name('kiosk.activity');
+Route::get('/borne/{kiosk}/scan', [KioskScanController::class, 'show'])->name('kiosk.scan');
+Route::get('/borne/{kiosk}/avis', [KioskReviewController::class, 'show'])->name('kiosk.reviews.show');
+Route::post('/borne/{kiosk}/avis', [KioskReviewController::class, 'store'])
+    ->middleware('throttle:20,1')
+    ->name('kiosk.reviews.store');
 Route::post('/borne/{kiosk}/identification', [KioskPunchController::class, 'identify'])
     ->middleware('throttle:30,1')
     ->name('kiosk.identify');

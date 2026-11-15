@@ -29,7 +29,7 @@ class KioskDisplayTest extends TestCase
                 ->component('Kiosk/Show')
                 ->where('kioskName', 'Accueil')
                 ->where('token', $token)
-                ->where('scanUrl', route('punch.create'))
+                ->where('scanUrl', route('kiosk.scan', $kiosk))
                 ->where('windowSeconds', 30)
                 ->where('isPaired', false));
     }
