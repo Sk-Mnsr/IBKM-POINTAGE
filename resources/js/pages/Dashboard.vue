@@ -106,35 +106,65 @@ const kpis = computed(() => [
 
 const sparkHeight = (value: number, series: number[]): string => `${Math.max(8, (value / Math.max(1, ...series)) * 100)}%`;
 
+const workingRows = computed(() =>
+    props.rows.filter((row) => !['day_off', 'holiday', 'upcoming'].includes(row.day.status.value)),
+);
+
 const filters = computed(() => [
-    { key: 'all', label: 'Tous', count: props.rows.length },
+    { key: 'working', label: 'Présents attendus', count: workingRows.value.length },
     { key: 'on_site', label: 'Sur place', count: props.counts.onSite },
     { key: 'late', label: 'Retards', count: props.counts.late },
     { key: 'absent', label: 'Absents', count: props.counts.absent },
+    { key: 'all', label: 'Tous', count: props.rows.length },
 ]);
 
-const activeFilter = ref('all');
+const activeFilter = ref(props.counts.onSite > 0 ? 'on_site' : 'working');
 const search = ref('');
+
+const statusOrder: Record<string, number> = {
+    present: 0,
+    on_break: 1,
+    left: 2,
+    incomplete: 3,
+    absent: 4,
+    expected: 5,
+    on_leave: 6,
+    day_off: 7,
+    holiday: 8,
+    upcoming: 9,
+};
 
 const visibleRows = computed(() => {
     const term = search.value.trim().toLowerCase();
 
-    return props.rows.filter((row) => {
-        if (term && !`${row.employee.name} ${row.employee.department ?? ''}`.toLowerCase().includes(term)) {
-            return false;
-        }
+    return props.rows
+        .filter((row) => {
+            if (term && !`${row.employee.name} ${row.employee.department ?? ''}`.toLowerCase().includes(term)) {
+                return false;
+            }
 
-        switch (activeFilter.value) {
-            case 'on_site':
-                return ['present', 'on_break'].includes(row.day.status.value);
-            case 'late':
-                return row.day.lateMinutes > 0;
-            case 'absent':
-                return row.day.status.value === 'absent';
-            default:
-                return true;
-        }
-    });
+            switch (activeFilter.value) {
+                case 'working':
+                    return !['day_off', 'holiday', 'upcoming'].includes(row.day.status.value);
+                case 'on_site':
+                    return ['present', 'on_break'].includes(row.day.status.value);
+                case 'late':
+                    return row.day.lateMinutes > 0;
+                case 'absent':
+                    return row.day.status.value === 'absent';
+                default:
+                    return true;
+            }
+        })
+        .sort((a, b) => {
+            const byStatus = (statusOrder[a.day.status.value] ?? 99) - (statusOrder[b.day.status.value] ?? 99);
+
+            if (byStatus !== 0) {
+                return byStatus;
+            }
+
+            return a.employee.name.localeCompare(b.employee.name, 'fr');
+        });
 });
 
 const avatarPalette = [
@@ -292,54 +322,54 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                     </label>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[46rem] text-left text-sm whitespace-nowrap">
-                        <thead class="text-xs tracking-wide text-ink/45 uppercase">
+                <div class="max-h-[28rem] overflow-auto xl:max-h-[32rem]">
+                    <table class="w-full min-w-[42rem] text-left text-sm whitespace-nowrap">
+                        <thead class="sticky top-0 z-10 border-b border-line bg-paper text-xs tracking-wide text-ink/45 uppercase">
                             <tr>
-                                <th class="px-5 py-3 font-medium">Employé</th>
-                                <th class="px-5 py-3 font-medium">Horaire</th>
-                                <th class="px-5 py-3 font-medium">Arrivée</th>
-                                <th class="px-5 py-3 font-medium">Temps travaillé</th>
-                                <th class="px-5 py-3 text-right font-medium">État</th>
+                                <th class="px-4 py-2.5 font-medium">Employé</th>
+                                <th class="px-4 py-2.5 font-medium">Horaire</th>
+                                <th class="px-4 py-2.5 font-medium">Arrivée</th>
+                                <th class="px-4 py-2.5 font-medium">Temps</th>
+                                <th class="px-4 py-2.5 text-right font-medium">État</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-line">
                             <tr v-for="row in visibleRows" :key="row.employee.id" class="transition hover:bg-cream/50">
-                                <td class="px-5 py-3.5">
-                                    <Link :href="route('reports.employee', row.employee.id)" class="group flex items-center gap-3">
-                                        <span class="grid size-10 place-items-center rounded-2xl text-xs font-semibold" :class="avatarClasses(row.employee.department)">
+                                <td class="px-4 py-2">
+                                    <Link :href="route('reports.employee', row.employee.id)" class="group flex items-center gap-2.5">
+                                        <span class="grid size-8 place-items-center rounded-xl text-[11px] font-semibold" :class="avatarClasses(row.employee.department)">
                                             {{ row.employee.initials }}
                                         </span>
-                                        <span>
-                                            <span class="block font-medium group-hover:text-brand-dark">{{ row.employee.name }}</span>
-                                            <span class="block text-xs text-ink/50">{{ row.employee.department ?? 'Sans département' }}</span>
+                                        <span class="min-w-0">
+                                            <span class="block truncate font-medium group-hover:text-brand-dark">{{ row.employee.name }}</span>
+                                            <span class="block truncate text-xs text-ink/50">{{ row.employee.department ?? 'Sans département' }}</span>
                                         </span>
                                     </Link>
                                 </td>
-                                <td class="px-5 py-3.5 tabular-nums text-ink/60">{{ row.day.scheduleLabel }}</td>
-                                <td class="px-5 py-3.5 tabular-nums">
-                                    <span v-if="row.day.firstArrival" class="inline-flex items-center gap-2">
+                                <td class="px-4 py-2 tabular-nums text-ink/60">{{ row.day.scheduleLabel }}</td>
+                                <td class="px-4 py-2 tabular-nums">
+                                    <span v-if="row.day.firstArrival" class="inline-flex flex-wrap items-center gap-1.5">
                                         <span class="font-medium">{{ row.day.firstArrival }}</span>
-                                        <span v-if="row.day.lateMinutes > 0" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                        <span v-if="row.day.lateMinutes > 0" class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
                                             +{{ formatDuration(row.day.lateMinutes) }}
                                         </span>
                                     </span>
                                     <span v-else class="text-ink/30">—</span>
                                 </td>
-                                <td class="px-5 py-3.5">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-1.5 w-24 overflow-hidden rounded-full bg-ink/5">
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-1.5 w-16 overflow-hidden rounded-full bg-ink/5">
                                             <div class="h-full rounded-full bg-brand transition-[width] duration-500" :style="{ width: `${workedPercent(row.day)}%` }" />
                                         </div>
                                         <span class="text-xs tabular-nums text-ink/60">{{ formatDuration(row.day.workedMinutes, '0 min') }}</span>
                                     </div>
                                 </td>
-                                <td class="px-5 py-3.5 text-right">
+                                <td class="px-4 py-2 text-right">
                                     <StatusBadge :tone="row.day.status.tone" :label="row.day.status.label" />
                                 </td>
                             </tr>
                             <tr v-if="visibleRows.length === 0">
-                                <td colspan="5" class="px-5 py-12 text-center text-ink/50">
+                                <td colspan="5" class="px-4 py-10 text-center text-ink/50">
                                     <template v-if="rows.length === 0">
                                         Aucun employé actif.
                                         <Link :href="route('employees.create')" class="font-medium text-brand-dark">Ajouter un employé</Link>
@@ -350,6 +380,11 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                         </tbody>
                     </table>
                 </div>
+                <p v-if="visibleRows.length > 0" class="border-t border-line px-4 py-2 text-xs text-ink/45">
+                    {{ visibleRows.length }} personne(s) affichée(s)
+                    <template v-if="activeFilter === 'on_site'"> · sur place en ce moment</template>
+                    <template v-else-if="activeFilter === 'working'"> · hors jours de repos</template>
+                </p>
             </article>
 
             <div class="grid content-start gap-6">

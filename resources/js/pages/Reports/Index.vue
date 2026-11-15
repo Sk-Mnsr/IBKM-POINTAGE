@@ -73,6 +73,8 @@ const kpis = computed(() => [
 
 const sortKey = ref<SortKey>('name');
 const sortDescending = ref(false);
+const search = ref('');
+const listFilter = ref<'active' | 'all'>('active');
 
 const sortValue = (row: Row, key: SortKey): number | string => {
     switch (key) {
@@ -89,14 +91,34 @@ const sortValue = (row: Row, key: SortKey): number | string => {
     }
 };
 
+const filteredRows = computed(() => {
+    const term = search.value.trim().toLowerCase();
+
+    return props.rows.filter((row) => {
+        if (term && !`${row.employee.name} ${row.employee.department ?? ''}`.toLowerCase().includes(term)) {
+            return false;
+        }
+
+        if (listFilter.value === 'active') {
+            return row.summary.workedMinutes > 0 || row.summary.absentDays > 0 || row.summary.lateCount > 0 || row.summary.leaveDays > 0;
+        }
+
+        return true;
+    });
+});
+
 const sortedRows = computed(() =>
-    [...props.rows].sort((first, second) => {
+    [...filteredRows.value].sort((first, second) => {
         const a = sortValue(first, sortKey.value);
         const b = sortValue(second, sortKey.value);
         const order = a < b ? -1 : a > b ? 1 : 0;
 
         return sortDescending.value ? -order : order;
     }),
+);
+
+const activeCount = computed(
+    () => props.rows.filter((row) => row.summary.workedMinutes > 0 || row.summary.absentDays > 0 || row.summary.lateCount > 0 || row.summary.leaveDays > 0).length,
 );
 
 const sortBy = (key: SortKey): void => {
@@ -251,15 +273,40 @@ const toWatch = computed(() =>
 
         <section class="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_20rem]">
             <article class="overflow-hidden rounded-3xl border border-line bg-paper">
-                <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-                    <h2 class="font-semibold">Détail par employé</h2>
-                    <p class="text-xs text-ink/45">Cliquez sur un en-tête pour trier</p>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="font-semibold">Détail par employé</h2>
+                        <div class="flex items-center gap-1 rounded-full bg-cream p-1 text-xs">
+                            <button
+                                type="button"
+                                class="rounded-full px-2.5 py-1 transition"
+                                :class="listFilter === 'active' ? 'bg-ink font-medium text-cream' : 'text-ink/60 hover:text-ink'"
+                                @click="listFilter = 'active'"
+                            >
+                                Avec activité · {{ activeCount }}
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-full px-2.5 py-1 transition"
+                                :class="listFilter === 'all' ? 'bg-ink font-medium text-cream' : 'text-ink/60 hover:text-ink'"
+                                @click="listFilter = 'all'"
+                            >
+                                Tous · {{ rows.length }}
+                            </button>
+                        </div>
+                    </div>
+                    <input
+                        v-model="search"
+                        type="search"
+                        placeholder="Rechercher…"
+                        class="h-9 w-44 rounded-full border border-line bg-cream/60 px-4 text-sm outline-none focus:border-brand focus:bg-white"
+                    >
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[44rem] text-sm whitespace-nowrap">
-                        <thead class="text-xs tracking-wide text-ink/45 uppercase">
+                <div class="max-h-[28rem] overflow-auto xl:max-h-[36rem]">
+                    <table class="w-full min-w-[42rem] text-sm whitespace-nowrap">
+                        <thead class="sticky top-0 z-10 border-b border-line bg-paper text-xs tracking-wide text-ink/45 uppercase">
                             <tr>
-                                <th v-for="column in columns" :key="column.key" class="px-5 py-3 font-medium" :class="column.align">
+                                <th v-for="column in columns" :key="column.key" class="px-4 py-2.5 font-medium" :class="column.align">
                                     <button type="button" class="inline-flex items-center gap-1 uppercase hover:text-ink" @click="sortBy(column.key)">
                                         {{ column.label }}
                                         <Icon
@@ -270,7 +317,7 @@ const toWatch = computed(() =>
                                         />
                                     </button>
                                 </th>
-                                <th class="w-10 px-3 py-3"><span class="sr-only">Ouvrir la fiche</span></th>
+                                <th class="w-10 px-3 py-2.5"><span class="sr-only">Ouvrir la fiche</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-line">
@@ -280,18 +327,18 @@ const toWatch = computed(() =>
                                 class="group cursor-pointer transition hover:bg-cream/50"
                                 @click="router.visit(route('reports.employee', { employee: row.employee.id, mois: month.value }))"
                             >
-                                <td class="px-5 py-3.5">
-                                    <div class="flex items-center gap-3">
-                                        <span class="grid size-10 place-items-center rounded-2xl bg-cream text-xs font-semibold">{{ row.employee.initials }}</span>
-                                        <span>
-                                            <span class="block font-medium group-hover:text-brand-dark">{{ row.employee.name }}</span>
-                                            <span class="block text-xs text-ink/50">{{ row.employee.department ?? 'Sans département' }}</span>
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="grid size-8 place-items-center rounded-xl bg-cream text-[11px] font-semibold">{{ row.employee.initials }}</span>
+                                        <span class="min-w-0">
+                                            <span class="block truncate font-medium group-hover:text-brand-dark">{{ row.employee.name }}</span>
+                                            <span class="block truncate text-xs text-ink/50">{{ row.employee.department ?? 'Sans département' }}</span>
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-5 py-3.5">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-1.5 w-24 overflow-hidden rounded-full bg-ink/5">
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-1.5 w-16 overflow-hidden rounded-full bg-ink/5">
                                             <div class="h-full rounded-full bg-brand" :style="{ width: `${percentOf(row.summary.workedMinutes, row.summary.scheduledMinutes)}%` }" />
                                         </div>
                                         <span class="tabular-nums">
@@ -299,9 +346,9 @@ const toWatch = computed(() =>
                                             <span class="text-xs text-ink/45"> / {{ formatDuration(row.summary.scheduledMinutes, '0 h') }}</span>
                                         </span>
                                     </div>
-                                    <p v-if="row.summary.overtimeMinutes > 0" class="mt-1 text-xs text-brand-dark">+{{ formatDuration(row.summary.overtimeMinutes) }} sup</p>
+                                    <p v-if="row.summary.overtimeMinutes > 0" class="mt-0.5 text-xs text-brand-dark">+{{ formatDuration(row.summary.overtimeMinutes) }} sup</p>
                                 </td>
-                                <td class="px-5 py-3.5">
+                                <td class="px-4 py-2">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <span class="rounded-full bg-cream px-2 py-0.5 text-xs font-medium tabular-nums">{{ row.summary.workedDays }} j</span>
                                         <span v-if="row.summary.absentDays > 0" class="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 tabular-nums">
@@ -312,15 +359,15 @@ const toWatch = computed(() =>
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-5 py-3.5">
+                                <td class="px-4 py-2">
                                     <span v-if="row.summary.lateCount > 0" class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 tabular-nums">
                                         {{ row.summary.lateCount }} · {{ formatDuration(row.summary.lateMinutes) }}
                                     </span>
                                     <span v-else class="text-xs text-ink/35">Aucun</span>
                                 </td>
-                                <td class="px-5 py-3.5">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-1.5 w-20 overflow-hidden rounded-full bg-ink/5">
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-1.5 w-14 overflow-hidden rounded-full bg-ink/5">
                                             <div
                                                 class="h-full rounded-full"
                                                 :class="punctualityTone(row.summary.punctualityRate).bar"
@@ -332,28 +379,24 @@ const toWatch = computed(() =>
                                         </span>
                                     </div>
                                 </td>
-                                <td class="w-10 px-3 py-3.5 text-right">
+                                <td class="w-10 px-3 py-2 text-right">
                                     <Icon name="chevron-right" class="ml-auto size-4 text-ink/30 group-hover:text-brand-dark" />
                                 </td>
                             </tr>
-                            <tr v-if="rows.length === 0">
-                                <td colspan="6" class="px-5 py-12 text-center text-ink/50">Aucun employé pour ce filtre.</td>
+                            <tr v-if="sortedRows.length === 0">
+                                <td colspan="6" class="px-4 py-10 text-center text-ink/50">Aucun employé pour ce filtre.</td>
                             </tr>
                         </tbody>
-                        <tfoot v-if="rows.length > 0" class="border-t border-line bg-cream/50 text-sm">
-                            <tr>
-                                <td class="px-5 py-3.5 font-semibold">Total équipe</td>
-                                <td class="px-5 py-3.5 tabular-nums">
-                                    <span class="font-semibold">{{ formatDuration(totals.workedMinutes, '0 h') }}</span>
-                                    <span class="text-xs text-ink/45"> / {{ formatDuration(totals.scheduledMinutes, '0 h') }}</span>
-                                </td>
-                                <td class="px-5 py-3.5 tabular-nums">{{ totals.workedDays }} j · {{ totals.absentDays }} abs.</td>
-                                <td class="px-5 py-3.5 tabular-nums">{{ totals.lateCount }} · {{ formatDuration(totals.lateMinutes, '0 min') }}</td>
-                                <td class="px-5 py-3.5 font-semibold tabular-nums">{{ formatRate(totals.punctualityRate) }}</td>
-                                <td />
-                            </tr>
-                        </tfoot>
                     </table>
+                </div>
+                <div v-if="rows.length > 0" class="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-cream/50 px-4 py-2.5 text-sm">
+                    <p class="font-semibold">Total équipe · {{ sortedRows.length }} affiché(s)</p>
+                    <p class="tabular-nums text-ink/70">
+                        {{ formatDuration(totals.workedMinutes, '0 h') }} /
+                        {{ formatDuration(totals.scheduledMinutes, '0 h') }}
+                        · {{ totals.workedDays }} j · {{ totals.absentDays }} abs.
+                        · {{ formatRate(totals.punctualityRate) }}
+                    </p>
                 </div>
             </article>
 
