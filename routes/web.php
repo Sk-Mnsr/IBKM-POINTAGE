@@ -86,6 +86,8 @@ Route::middleware(['auth', 'admin', 'password.changed'])->group(function () {
     Route::get('/avis-clients', [CustomerReviewController::class, 'index'])->name('reviews.index');
 
     Route::middleware('super_admin')->group(function () {
+        Route::delete('/employes/{employee}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+
         Route::resource('boutiques', ShopController::class)
             ->except(['show', 'destroy'])
             ->parameters(['boutiques' => 'shop'])

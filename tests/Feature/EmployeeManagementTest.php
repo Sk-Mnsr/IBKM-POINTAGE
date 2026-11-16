@@ -155,4 +155,29 @@ class EmployeeManagementTest extends TestCase
 
         $this->assertModelExists($department);
     }
+
+    public function test_super_admin_can_delete_an_employee(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $employee = User::factory()->create(['name' => 'SECK MAREME']);
+
+        $this->actingAs($superAdmin)
+            ->delete(route('employees.destroy', $employee))
+            ->assertRedirect(route('employees.index'))
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('users', ['id' => $employee->id]);
+    }
+
+    public function test_shop_admin_cannot_delete_an_employee(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = User::factory()->create(['name' => 'SECK MAREME']);
+
+        $this->actingAs($admin)
+            ->delete(route('employees.destroy', $employee))
+            ->assertForbidden();
+
+        $this->assertModelExists($employee);
+    }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\CustomerReviewRating;
 use App\Enums\LeaveStatus;
+use App\Models\CustomerReview;
 use App\Models\LeaveRequest;
 use App\Models\Shop;
 use App\Models\User;
 use App\Support\ShopContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -60,6 +63,16 @@ class HandleInertiaRequests extends Middleware
                 ? LeaveRequest::query()
                     ->where('status', LeaveStatus::Pending)
                     ->inShops(app(ShopContext::class)->scopeIds())
+                    ->count()
+                : 0,
+            'unsatisfiedReviewCount' => fn (): int => $user?->isAdmin()
+                ? CustomerReview::query()
+                    ->whereIn('shop_id', app(ShopContext::class)->scopeIds())
+                    ->where('rating', CustomerReviewRating::Unsatisfied)
+                    ->whereBetween('created_at', [
+                        CarbonImmutable::today()->startOfDay(),
+                        CarbonImmutable::today()->endOfDay(),
+                    ])
                     ->count()
                 : 0,
         ];

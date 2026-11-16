@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
 import Pagination from '@/components/Pagination.vue';
 import type { Paginated } from '@/types';
+
+const page = usePage();
+const unsatisfiedToday = computed(() => page.props.unsatisfiedReviewCount ?? 0);
 
 interface RatingBadge {
     value: string;
@@ -75,6 +78,12 @@ const isPreset = (preset: { du: string; au: string }): boolean => form.du === pr
 const applyPreset = (preset: { du: string; au: string }): void => {
     form.du = preset.du;
     form.au = preset.au;
+    apply();
+};
+
+const showTodayUnsatisfied = (): void => {
+    form.du = today.value;
+    form.au = today.value;
     apply();
 };
 
@@ -235,6 +244,30 @@ const timeOnly = (at: string | null): string => {
             </div>
         </section>
 
+        <section
+            v-if="unsatisfiedToday > 0"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-rose-200 bg-rose-50 px-5 py-4 text-rose-950"
+        >
+            <div class="flex items-center gap-3">
+                <span class="grid size-10 place-items-center rounded-full bg-rose-200 text-rose-800">
+                    <Icon name="alert" class="size-5" />
+                </span>
+                <div>
+                    <p class="font-semibold">
+                        {{ unsatisfiedToday }} avis insatisfait{{ unsatisfiedToday > 1 ? 's' : '' }} aujourd’hui
+                    </p>
+                    <p class="text-sm text-rose-800/70">À regarder pour réagir vite auprès des clients.</p>
+                </div>
+            </div>
+            <button
+                type="button"
+                class="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+                @click="showTodayUnsatisfied"
+            >
+                Voir aujourd’hui
+            </button>
+        </section>
+
         <section class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div class="grid gap-3 rounded-[1.75rem] border border-line bg-paper p-5">
                 <p class="text-sm font-medium text-ink/55">Répartition des notes</p>
@@ -260,7 +293,7 @@ const timeOnly = (at: string | null): string => {
                                 <template v-else-if="mood.value === 'satisfied'">
                                     <circle cx="42" cy="50" r="7" fill="#111" />
                                     <circle cx="78" cy="50" r="7" fill="#111" />
-                                    <path d="M40 76h40" stroke="#111" stroke-width="8" stroke-linecap="round" />
+                                    <path d="M38 72c8 12 36 12 44 0" stroke="#111" stroke-width="8" stroke-linecap="round" />
                                 </template>
                                 <template v-else>
                                     <path d="M34 44c4 8 12 8 16 0M70 44c4 8 12 8 16 0" stroke="#111" stroke-width="7" stroke-linecap="round" />
@@ -360,7 +393,7 @@ const timeOnly = (at: string | null): string => {
                                 <template v-else-if="review.rating.value === 'satisfied'">
                                     <circle cx="42" cy="50" r="7" fill="#111" />
                                     <circle cx="78" cy="50" r="7" fill="#111" />
-                                    <path d="M40 76h40" stroke="#111" stroke-width="8" stroke-linecap="round" />
+                                    <path d="M38 72c8 12 36 12 44 0" stroke="#111" stroke-width="8" stroke-linecap="round" />
                                 </template>
                                 <template v-else>
                                     <path d="M34 44c4 8 12 8 16 0M70 44c4 8 12 8 16 0" stroke="#111" stroke-width="7" stroke-linecap="round" />

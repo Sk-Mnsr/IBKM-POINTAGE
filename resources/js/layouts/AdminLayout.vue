@@ -21,7 +21,7 @@ const navigation = computed(() =>
         { route: 'punches.index', label: 'Pointages', icon: 'history', badge: 0 },
         { route: 'reports.index', label: 'Rapports', icon: 'chart', badge: 0 },
         { route: 'leaves.index', label: 'Congés', icon: 'plane', badge: page.props.pendingLeaveCount },
-        { route: 'reviews.index', label: 'Avis clients', icon: 'star', badge: 0 },
+        { route: 'reviews.index', label: 'Avis clients', icon: 'star', badge: page.props.unsatisfiedReviewCount },
         { route: 'employees.index', label: 'Employés', icon: 'users', badge: 0 },
         { route: 'departments.index', label: 'Départements', icon: 'building', badge: 0 },
         ...(isSuperAdmin.value

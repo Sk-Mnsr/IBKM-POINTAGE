@@ -231,5 +231,6 @@ export interface SharedProps {
     };
     shopContext: { current: ShopOption | null; shops: ShopOption[] } | null;
     pendingLeaveCount: number;
+    unsatisfiedReviewCount: number;
     errors: Record<string, string>;
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import { route } from 'ziggy-js';
 import Icon from '@/components/Icon.vue';
 import ToggleSwitch from '@/components/ToggleSwitch.vue';
+import { confirmAction } from '@/lib/confirm';
 import { formatDuration } from '@/lib/format';
 import { minutesBetween } from '@/lib/schedule';
 import type { Department, Employee, ShopOption, WorkScheduleInput } from '@/types';
@@ -15,6 +16,9 @@ const props = defineProps<{
     departments: Department[];
     weekdays: Record<string, string>;
 }>();
+
+const page = usePage();
+const canDeleteEmployee = computed(() => page.props.auth.user?.role === 'super_admin');
 
 const schedules: Record<string, WorkScheduleInput> = Object.fromEntries(
     Object.keys(props.weekdays).map((weekday) => {
@@ -121,6 +125,23 @@ const submit = (): void => {
     }
 
     form.post(route('employees.store'));
+};
+
+const removeEmployee = async (): Promise<void> => {
+    if (!props.employee || !canDeleteEmployee.value) {
+        return;
+    }
+
+    const confirmed = await confirmAction({
+        title: `Supprimer ${props.employee.name} ?`,
+        message: 'Ses pointages, congés et horaires seront aussi effacés. Cette action est définitive.',
+        confirmLabel: 'Supprimer',
+        danger: true,
+    });
+
+    if (confirmed) {
+        router.delete(route('employees.destroy', props.employee.id));
+    }
 };
 
 const inputClasses = 'h-11 w-full rounded-xl border border-line bg-white px-3.5 text-sm outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/15';
@@ -382,6 +403,14 @@ const inputClasses = 'h-11 w-full rounded-xl border border-line bg-white px-3.5 
                     <template v-else>Aucune modification</template>
                 </p>
                 <div class="flex items-center gap-2">
+                    <button
+                        v-if="employee && canDeleteEmployee"
+                        type="button"
+                        class="inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-medium text-rose-700 hover:bg-rose-50"
+                        @click="removeEmployee"
+                    >
+                        Supprimer
+                    </button>
                     <Link :href="route('employees.index')" class="inline-flex h-11 items-center rounded-full px-4 text-sm font-medium text-ink/60 hover:text-ink">Annuler</Link>
                     <button
                         type="submit"

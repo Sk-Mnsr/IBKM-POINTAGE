@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onUnmounted, ref } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import Icon from '@/components/Icon.vue';
 import { firstValidationError, postJson } from '@/lib/http';
@@ -27,8 +27,11 @@ const processing = ref(false);
 const error = ref<string | null>(null);
 const thanks = ref(false);
 const popping = ref<string | null>(null);
+const cooldownUntil = ref(0);
+const now = ref(Date.now());
 const commentInput = ref<HTMLTextAreaElement | null>(null);
 let audioContext: AudioContext | null = null;
+let cooldownTimer: ReturnType<typeof window.setInterval> | null = null;
 
 const moods: Record<string, { hint: string; thanks: string; glow: string; chip: string }> = {
     very_satisfied: {
@@ -53,6 +56,9 @@ const moods: Record<string, { hint: string; thanks: string; glow: string; chip: 
 
 const mood = computed(() => (selected.value ? moods[selected.value] : null));
 
+const cooldownSeconds = computed(() => Math.max(0, Math.ceil((cooldownUntil.value - now.value) / 1000)));
+const isCoolingDown = computed(() => cooldownSeconds.value > 0);
+
 const sparkles = Array.from({ length: 18 }, (_, index) => ({
     id: index,
     left: `${(index * 17) % 100}%`,
@@ -60,6 +66,27 @@ const sparkles = Array.from({ length: 18 }, (_, index) => ({
     size: `${10 + (index % 5) * 4}px`,
     tone: index % 3 === 0 ? 'bg-brand' : index % 3 === 1 ? 'bg-amber-300' : 'bg-cream',
 }));
+
+const startCooldownClock = (): void => {
+    if (cooldownTimer !== null) {
+        return;
+    }
+
+    cooldownTimer = window.setInterval(() => {
+        now.value = Date.now();
+
+        if (now.value >= cooldownUntil.value && cooldownTimer !== null) {
+            window.clearInterval(cooldownTimer);
+            cooldownTimer = null;
+        }
+    }, 250);
+};
+
+onUnmounted(() => {
+    if (cooldownTimer !== null) {
+        window.clearInterval(cooldownTimer);
+    }
+});
 
 const chime = (value: string): void => {
     try {
@@ -106,6 +133,10 @@ const closeComment = (): void => {
 };
 
 const pick = async (value: string): Promise<void> => {
+    if (isCoolingDown.value || processing.value || thanks.value) {
+        return;
+    }
+
     selected.value = value;
     popping.value = value;
     error.value = null;
@@ -121,8 +152,18 @@ const pick = async (value: string): Promise<void> => {
     commentInput.value?.focus();
 };
 
+const finishThanks = (): void => {
+    selected.value = null;
+    comment.value = '';
+    showComment.value = false;
+    thanks.value = false;
+    cooldownUntil.value = Date.now() + 45_000;
+    now.value = Date.now();
+    startCooldownClock();
+};
+
 const submit = async (): Promise<void> => {
-    if (!selected.value || processing.value) {
+    if (!selected.value || processing.value || isCoolingDown.value) {
         return;
     }
 
@@ -155,13 +196,9 @@ const submit = async (): Promise<void> => {
         }
 
         chime('very_satisfied');
+        showComment.value = false;
         thanks.value = true;
-        window.setTimeout(() => {
-            selected.value = null;
-            comment.value = '';
-            showComment.value = false;
-            thanks.value = false;
-        }, 4800);
+        window.setTimeout(finishThanks, 2800);
     } catch {
         error.value = 'Connexion impossible. Réessayez dans un instant.';
     } finally {
@@ -199,21 +236,22 @@ const submit = async (): Promise<void> => {
                     {{ question }}
                 </h1>
                 <p class="mx-auto mt-3 max-w-md text-center text-base text-cream/50">
-                    Touchez le visage qui correspond à votre ressenti
+                    {{ isCoolingDown ? `Prochain avis dans ${cooldownSeconds} s` : 'Touchez le visage qui correspond à votre ressenti' }}
                 </p>
 
-                <div class="mt-12 flex flex-wrap items-end justify-center gap-6 sm:gap-10">
+                <div class="mt-10 flex flex-wrap items-end justify-center gap-4 sm:mt-12 sm:gap-8" :class="isCoolingDown ? 'pointer-events-none opacity-40' : ''">
                     <button
                         v-for="(rating, index) in ratings"
                         :key="rating.value"
                         type="button"
-                        class="group relative flex w-[7.5rem] flex-col items-center gap-4 sm:w-40"
+                        class="group relative flex min-h-44 w-36 flex-col items-center justify-end gap-4 p-2 sm:min-h-52 sm:w-44"
                         :style="{ animationDelay: `${index * 90}ms` }"
                         :aria-pressed="selected === rating.value"
+                        :disabled="isCoolingDown"
                         @click="pick(rating.value)"
                     >
                         <span
-                            class="face-orb relative grid size-28 place-items-center rounded-full transition duration-300 sm:size-36"
+                            class="face-orb relative grid size-32 place-items-center rounded-full transition duration-300 sm:size-40"
                             :class="[
                                 selected === rating.value ? moods[rating.value]?.glow : 'hover:-translate-y-2 hover:scale-105',
                                 selected === rating.value ? 'scale-110 -translate-y-1' : 'scale-100',
@@ -234,7 +272,7 @@ const submit = async (): Promise<void> => {
                                 "
                             />
                             <svg
-                                class="relative size-[4.5rem] sm:size-24"
+                                class="relative size-20 sm:size-28"
                                 viewBox="0 0 120 120"
                                 fill="none"
                                 aria-hidden="true"
@@ -255,13 +293,14 @@ const submit = async (): Promise<void> => {
                                 </template>
                                 <template v-else-if="rating.value === 'satisfied'">
                                     <circle cx="60" cy="60" r="54" :fill="selected === rating.value ? '#111' : '#fbbf24'" />
-                                    <circle cx="42" cy="50" r="7" :fill="selected === rating.value ? '#fbbf24' : '#111'" />
-                                    <circle cx="78" cy="50" r="7" :fill="selected === rating.value ? '#fbbf24' : '#111'" />
+                                    <circle cx="42" cy="50" r="7" :fill="selected === rating.value ? '#fbbf24' : '#111'" class="eye-blink" />
+                                    <circle cx="78" cy="50" r="7" :fill="selected === rating.value ? '#fbbf24' : '#111'" class="eye-blink" />
                                     <path
-                                        d="M40 76h40"
+                                        d="M38 72c8 12 36 12 44 0"
                                         :stroke="selected === rating.value ? '#fbbf24' : '#111'"
                                         stroke-width="8"
                                         stroke-linecap="round"
+                                        class="mouth-happy"
                                     />
                                 </template>
                                 <template v-else>
@@ -296,7 +335,6 @@ const submit = async (): Promise<void> => {
                         </span>
                     </button>
                 </div>
-
             </section>
         </div>
 
@@ -341,7 +379,7 @@ const submit = async (): Promise<void> => {
                                     <template v-else-if="selected === 'satisfied'">
                                         <circle cx="42" cy="50" r="7" fill="#111" />
                                         <circle cx="78" cy="50" r="7" fill="#111" />
-                                        <path d="M40 76h40" stroke="#111" stroke-width="8" stroke-linecap="round" />
+                                        <path d="M38 72c8 12 36 12 44 0" stroke="#111" stroke-width="8" stroke-linecap="round" />
                                     </template>
                                     <template v-else>
                                         <path d="M34 44c4 8 12 8 16 0M70 44c4 8 12 8 16 0" stroke="#111" stroke-width="7" stroke-linecap="round" />

@@ -295,8 +295,8 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
             </div>
         </section>
 
-        <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-            <article class="overflow-hidden rounded-3xl border border-line bg-paper">
+        <section class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+            <article class="w-full min-w-0 overflow-hidden rounded-3xl border border-line bg-paper">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
                     <div class="flex flex-wrap items-center gap-1 rounded-full bg-cream p-1 text-sm">
                         <button
@@ -322,7 +322,7 @@ const chartTicks = computed(() => [chartMax.value, Math.round(chartMax.value / 2
                     </label>
                 </div>
 
-                <div class="max-h-[28rem] overflow-auto xl:max-h-[32rem]">
+                <div class="max-h-[min(28rem,70vh)] overflow-auto">
                     <table class="w-full min-w-[42rem] text-left text-sm whitespace-nowrap">
                         <thead class="sticky top-0 z-10 border-b border-line bg-paper text-xs tracking-wide text-ink/45 uppercase">
                             <tr>

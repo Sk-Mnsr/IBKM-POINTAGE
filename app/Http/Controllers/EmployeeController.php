@@ -98,6 +98,14 @@ class EmployeeController extends Controller
         return redirect()->route('employees.index')->with('status', 'Modifications enregistrées.');
     }
 
+    public function destroy(User $employee): RedirectResponse
+    {
+        $name = $employee->name;
+        $employee->delete();
+
+        return redirect()->route('employees.index')->with('status', "{$name} a été supprimé(e), avec ses pointages et congés.");
+    }
+
     /**
      * @return array{shops: list<array{id: int, name: string}>, defaultShopId: ?int, departments: array<int, mixed>, weekdays: array<int, string>}
      */

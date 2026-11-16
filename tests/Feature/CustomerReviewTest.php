@@ -24,7 +24,7 @@ class CustomerReviewTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Kiosk/Reviews')
                 ->where('kioskName', 'Accueil')
-                ->where('question', 'Comment évaluez-vous votre prise en charge de ce jour ?')
+                ->where('question', 'Comment s’est passée votre visite ?')
                 ->has('ratings', 3)
                 ->where('submitUrl', route('kiosk.reviews.store', $kiosk)));
     }
@@ -192,5 +192,32 @@ class CustomerReviewTest extends TestCase
                 ->where('reviews.total', 1)
                 ->where('reviews.data.0.comment', 'Avis accueil')
                 ->where('filters.borne', $first->id));
+    }
+
+    public function test_admin_sees_todays_unsatisfied_review_count(): void
+    {
+        $shop = Shop::factory()->create();
+        $kiosk = Kiosk::factory()->create(['shop_id' => $shop->id]);
+        $admin = User::factory()->superAdmin()->create();
+
+        CustomerReview::factory()->unsatisfied()->create([
+            'shop_id' => $shop->id,
+            'kiosk_id' => $kiosk->id,
+        ]);
+        CustomerReview::factory()->verySatisfied()->create([
+            'shop_id' => $shop->id,
+            'kiosk_id' => $kiosk->id,
+        ]);
+        CustomerReview::factory()->unsatisfied()->create([
+            'shop_id' => $shop->id,
+            'kiosk_id' => $kiosk->id,
+            'created_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('reviews.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('unsatisfiedReviewCount', 1));
     }
 }

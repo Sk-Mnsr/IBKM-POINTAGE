@@ -25,7 +25,7 @@ class KioskReviewController extends Controller
             'shopName' => $kiosk->shop?->name,
             'kioskUrl' => route('kiosk.show', $kiosk),
             'submitUrl' => route('kiosk.reviews.store', $kiosk),
-            'question' => 'Comment évaluez-vous votre prise en charge de ce jour ?',
+            'question' => 'Comment s’est passée votre visite ?',
             'ratings' => array_map(
                 fn (CustomerReviewRating $rating): array => $rating->toArray(),
                 CustomerReviewRating::cases(),
