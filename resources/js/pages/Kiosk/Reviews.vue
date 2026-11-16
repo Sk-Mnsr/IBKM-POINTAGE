@@ -235,8 +235,8 @@ const submit = async (): Promise<void> => {
                 <h1 class="mx-auto mt-4 max-w-2xl text-center text-3xl leading-tight font-semibold tracking-tight sm:text-5xl">
                     {{ question }}
                 </h1>
-                <p class="mx-auto mt-3 max-w-md text-center text-base text-cream/50">
-                    {{ isCoolingDown ? `Prochain avis dans ${cooldownSeconds} s` : 'Touchez le visage qui correspond à votre ressenti' }}
+                <p v-if="isCoolingDown" class="mx-auto mt-3 max-w-md text-center text-base text-cream/50">
+                    Prochain avis dans {{ cooldownSeconds }} s
                 </p>
 
                 <div class="mt-10 flex flex-wrap items-end justify-center gap-4 sm:mt-12 sm:gap-8" :class="isCoolingDown ? 'pointer-events-none opacity-40' : ''">
